@@ -18,14 +18,12 @@ const float markerLength = 2.0;
 using namespace cv;
 
 // initializeTemplates
-std::vector<Mat> initializeTemplates(void) {
-	std::vector<Mat> letters;
+void initializeTemplates(std::vector<Mat>& letters) {
 
-	Mat A = imread("Ablue.png", CV_LOAD_IMAGE_COLOR);
+	Mat A = imread("Ablue.png", CV_LOAD_IMAGE_GRAYSCALE);
 
 	letters.push_back(A);
 
-	return letters;
 }
 
 
@@ -61,7 +59,8 @@ int main(int argc, char* argv[])
 	printf("Image width=%f, height=%f\n", WIDTH, HEIGHT);
 
 
-	std::vector<Mat> letters = initializeTemplates();
+	std::vector<Mat> letters; 
+	initializeTemplates(letters);
 	
 
 	// Allocate image.
