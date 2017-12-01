@@ -20,11 +20,13 @@ using namespace cv;
 // initializeTemplates
 void initializeTemplates(std::vector<Mat>& letters) {
 
-	Mat A = imread("Ablue.png", CV_LOAD_IMAGE_GRAYSCALE);
+	Mat A = imread("A.png", CV_LOAD_IMAGE_COLOR);
 
 	letters.push_back(A);
 
 }
+
+
 
 
 // MAIN
