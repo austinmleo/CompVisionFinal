@@ -43,11 +43,13 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	//Mat A = imread("A.png", CV_LOAD_IMAGE_COLOR);
 	//letters.push_back(A);
 	Mat binaryImage;
+	Mat gray;
 	int thresh = 0;
 	int const max_BINARY_value = 255;
 	int threshold_type = THRESH_BINARY;
 
-	threshold(templateImage, binaryImage, thresh, max_BINARY_value, threshold_type);
+	cv::cvtColor(templateImage, gray, CV_BGR2GRAY);
+	threshold(gray, binaryImage, thresh, max_BINARY_value, threshold_type);
 	//showImage(binaryImage, "Binary image");
 
 	//Find contours
