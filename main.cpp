@@ -18,15 +18,6 @@ const float markerLength = 2.0;
 using namespace cv;
 using namespace std;
 
-// initializeTemplates
-void initializeTemplates(std::vector<Mat>& letters) {
-
-	Mat A = imread("A.png", CV_LOAD_IMAGE_COLOR);
-
-	letters.push_back(A);
-
-}
-
 Mat readImage(String filename) {
 	cv::Mat image = cv::imread(filename, CV_LOAD_IMAGE_UNCHANGED);
 
@@ -40,18 +31,78 @@ Mat readImage(String filename) {
 	}
 }
 
-void showImage(Mat image) {
-	cv::namedWindow("Image", CV_WINDOW_AUTOSIZE);
-	cv::imshow("Image", image);
+void showImage(Mat image, String windowname) {
+	cv::namedWindow(windowname, CV_WINDOW_AUTOSIZE);
+	cv::imshow(windowname, image);
 	cv::waitKey(0);
 }
 
+// initializeTemplates
+void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
+
+	//Mat A = imread("A.png", CV_LOAD_IMAGE_COLOR);
+	//letters.push_back(A);
+	Mat binaryImage;
+	int thresh = 0;
+	int const max_BINARY_value = 255;
+	int threshold_type = THRESH_BINARY;
+
+	threshold(templateImage, binaryImage, thresh, max_BINARY_value, threshold_type);
+	//showImage(binaryImage, "Binary image");
+
+	//Find contours
+	vector<vector<Point> > contours;
+	vector<Vec4i> hierarchy;
+
+	/*cv::findContours(
+		binaryImage, // input image (is destroyed)
+		contours, // output vector of contours
+		hierarchy, // hierarchical representation
+		cv::RETR_CCOMP, // retrieve all contours
+		cv::CHAIN_APPROX_NONE); // all pixels of each contours*/
+	findContours(binaryImage, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
+
+	//Source for below code:
+	//https://docs.opencv.org/3.3.0/da/d0c/tutorial_bounding_rects_circles.html
+
+	vector<vector<Point> > contours_poly(contours.size());
+	vector<Rect> boundRect(contours.size());
+	vector<Point2f>center(contours.size());
+	vector<float>radius(contours.size());
+	RNG rng(12345);
+
+	for (unsigned int i = 0; i < (int)contours.size(); i++) {
+		int i2 = hierarchy[i][2];
+		if (i2 < 0) continue; // See if it has a child inside
+
+		approxPolyDP(Mat(contours[i]), contours_poly[i], 3, true);
+		boundRect[i] = boundingRect(Mat(contours_poly[i]));
+		minEnclosingCircle(contours_poly[i], center[i], radius[i]);
+	}
+	Mat drawing = Mat::zeros(binaryImage.size(), CV_8UC3);
+	for (size_t i = 0; i< contours.size(); i++)
+	{
+		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+		drawContours(drawing, contours_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point());
+		rectangle(drawing, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0);
+		circle(drawing, center[i], (int)radius[i], color, 2, 8, 0);
+	}
+	//namedWindow("Contours", WINDOW_AUTOSIZE);
+	//imshow("Contours", drawing);
+	showImage(drawing, "Bounding boxes.");
+
+
+
+}
 
 // MAIN
 int main(int argc, char* argv[])
 {
 	Mat trainingImage = readImage("training_with_scale_ARUCO.bmp");
-	showImage(trainingImage);
+	showImage(trainingImage, "Template image");
+
+	vector<Mat> letters;
+	initializeTemplates(trainingImage, letters);
 
 	/*
 	printf("This program detects ArUco markers.\n");
