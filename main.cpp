@@ -81,17 +81,17 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 		boundRect[i] = boundingRect(Mat(contours_poly[i]));
 		minEnclosingCircle(contours_poly[i], center[i], radius[i]);
 	}
-	Mat drawing = Mat::zeros(binaryImage.size(), CV_8UC3);
+	//Mat drawing = Mat::zeros(binaryImage.size(), CV_8UC3);
 	for (size_t i = 0; i< contours.size(); i++)
 	{
-		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-		drawContours(drawing, contours_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point());
-		rectangle(drawing, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0);
-		circle(drawing, center[i], (int)radius[i], color, 2, 8, 0);
+		//Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+		//drawContours(drawing, contours_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point());
+		rectangle(templateImage, boundRect[i].tl(), boundRect[i].br(), 255, 2, 8, 0);
+		//circle(drawing, center[i], (int)radius[i], color, 2, 8, 0);
 	}
 	//namedWindow("Contours", WINDOW_AUTOSIZE);
 	//imshow("Contours", drawing);
-	showImage(drawing, "Bounding boxes.");
+	showImage(templateImage, "Bounding boxes.");
 
 
 
