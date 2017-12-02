@@ -73,25 +73,32 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	vector<float>radius(contours.size());
 	RNG rng(12345);
 
+	int lettersCounter = 0;
+
 	for (unsigned int i = 0; i < (int)contours.size(); i++) {
 		//int i2 = hierarchy[i][2];
 		//if (i2 < 0) continue; // See if it has a child inside
 
 		if (contourArea(contours[i], true) > 0) {
-			cout << "black" << endl;
+			//cout << "black" << endl;
+			lettersCounter++;
 		}
 		else {
-			cout << "white" << endl;
+			//cout << "white" << endl;
 			//ignore white
 			continue;
 		}
 
 		approxPolyDP(Mat(contours[i]), contours_poly[i], 3, true);
-		boundRect[i] = boundingRect(Mat(contours_poly[i]));
-		minEnclosingCircle(contours_poly[i], center[i], radius[i]);
+		boundRect[lettersCounter] = boundingRect(Mat(contours_poly[i]));
+		//minEnclosingCircle(contours_poly[i], center[i], radius[i]);
 	}
+
+	cout << "# letters: " << lettersCounter;
+
 	//Mat drawing = Mat::zeros(binaryImage.size(), CV_8UC3);
-	for (size_t i = 0; i< contours.size(); i++)
+	int bound = boundRect.size();
+	for (size_t i = 0; i< bound; i++)
 	{
 		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 		//drawContours(drawing, contours_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point());
