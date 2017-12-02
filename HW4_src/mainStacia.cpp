@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
 	std::printf("This program detects ArUco markers.\n");
 	std::printf("Hit the ESC key to quit.\n");
 
-	string img = "training_with_scale_ARUCO";
+	string img = "training_with_scale_ARUCO.bmp";
 
 	cv::Mat K;
 	cv::Mat distCoeffs;
@@ -101,9 +101,10 @@ int main(int argc, char* argv[])
 
 		}
 
-		cv::imshow("Image", image); // show image
+		imshow("Image", image); // show image
 									// Wait for x ms (0 means wait until a keypress).
 									// Returns -1 if no key is hit.
+		Sleep(1000);
 	}
 	return EXIT_SUCCESS;
 }
