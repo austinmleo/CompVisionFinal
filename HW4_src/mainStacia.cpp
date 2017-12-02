@@ -101,10 +101,14 @@ int main(int argc, char* argv[])
 
 		}
 
-		imshow("Image", image); // show image
+		while (1) {
+
+			imshow("Image", image); // show image
 									// Wait for x ms (0 means wait until a keypress).
 									// Returns -1 if no key is hit.
-		Sleep(1000);
+			char key = waitKey(1);
+			if (key == 27) break; // ESC is ascii 27
+		}
 	}
 	return EXIT_SUCCESS;
 }

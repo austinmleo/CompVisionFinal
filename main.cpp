@@ -16,6 +16,7 @@
 const float markerLength = 2.0;
 
 using namespace cv;
+using namespace std;
 
 // initializeTemplates
 void initializeTemplates(std::vector<Mat>& letters) {
@@ -26,12 +27,33 @@ void initializeTemplates(std::vector<Mat>& letters) {
 
 }
 
+Mat readImage(String filename) {
+	cv::Mat image = cv::imread(filename, CV_LOAD_IMAGE_UNCHANGED);
 
+	if (image.empty())
+	{
+		cout << "Image not loaded";
+		std::exit(1);
+	}
+	else {
+		return image;
+	}
+}
+
+void showImage(Mat image) {
+	cv::namedWindow("Image", CV_WINDOW_AUTOSIZE);
+	cv::imshow("Image", image);
+	cv::waitKey(0);
+}
 
 
 // MAIN
 int main(int argc, char* argv[])
 {
+	Mat trainingImage = readImage("training_with_scale_ARUCO.bmp");
+	showImage(trainingImage);
+
+	/*
 	printf("This program detects ArUco markers.\n");
 	printf("Hit the ESC key to quit.\n");
 
@@ -163,4 +185,5 @@ int main(int argc, char* argv[])
 		if (key == 27) break; // ESC is ascii 27
 	}
 	return EXIT_SUCCESS;
+	*/
 }
