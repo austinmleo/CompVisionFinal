@@ -74,8 +74,17 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	RNG rng(12345);
 
 	for (unsigned int i = 0; i < (int)contours.size(); i++) {
-		int i2 = hierarchy[i][2];
-		if (i2 < 0) continue; // See if it has a child inside
+		//int i2 = hierarchy[i][2];
+		//if (i2 < 0) continue; // See if it has a child inside
+
+		if (contourArea(contours[i], true) > 0) {
+			cout << "black" << endl;
+		}
+		else {
+			cout << "white" << endl;
+			//ignore white
+			continue;
+		}
 
 		approxPolyDP(Mat(contours[i]), contours_poly[i], 3, true);
 		boundRect[i] = boundingRect(Mat(contours_poly[i]));
@@ -84,9 +93,9 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	//Mat drawing = Mat::zeros(binaryImage.size(), CV_8UC3);
 	for (size_t i = 0; i< contours.size(); i++)
 	{
-		//Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 		//drawContours(drawing, contours_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point());
-		rectangle(templateImage, boundRect[i].tl(), boundRect[i].br(), 255, 2, 8, 0);
+		rectangle(templateImage, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0);
 		//circle(drawing, center[i], (int)radius[i], color, 2, 8, 0);
 	}
 	//namedWindow("Contours", WINDOW_AUTOSIZE);
@@ -101,7 +110,7 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 int main(int argc, char* argv[])
 {
 	Mat trainingImage = readImage("training_with_scale_ARUCO.bmp");
-	showImage(trainingImage, "Template image");
+	//showImage(trainingImage, "Template image");
 
 	vector<Mat> letters;
 	initializeTemplates(trainingImage, letters);
