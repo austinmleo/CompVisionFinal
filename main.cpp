@@ -37,8 +37,56 @@ void showImage(Mat image, String windowname) {
 	cv::waitKey(0);
 }
 
+void showImageResize(Mat image, String windowname) {
+	cv::namedWindow(windowname, CV_WINDOW_NORMAL);
+	//cv::resizeWindow(windowname, image.size().width*scale, image.size().height*scale);
+	cv::imshow(windowname, image);
+	cv::waitKey(0);
+}
+
+vector<Point2f> detectAruco(Mat image) {
+	cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_ARUCO_ORIGINAL);
+	cv::Ptr<cv::aruco::DetectorParameters> detectorParams = cv::aruco::DetectorParameters::create();
+
+	std::vector< int > markerIds;
+	std::vector< std::vector<cv::Point2f> > markerCorners, rejectedCandidates;
+	cv::aruco::detectMarkers(
+		image, // input image
+		dictionary, // type of markers that will be searched for
+		markerCorners, // output vector of marker corners
+		markerIds, // detected marker IDs
+		detectorParams, // algorithm parameters
+		rejectedCandidates);
+	if (markerIds.size() > 0) {
+		// Draw all detected markers.
+		cv::aruco::drawDetectedMarkers(image, markerCorners, markerIds);
+	}
+
+	for (unsigned int i = 0; i < (int)markerCorners[0].size(); i++) {
+		int fontFace = 1;
+		double fontScale = 5;
+		Scalar color = 255;
+		putText(image, to_string(i+1), markerCorners[0][i], fontFace, fontScale, color, 3);
+	}
+	showImageResize(image, "Aruco markers");
+	//only one aruco marker should be found
+	return markerCorners[0];
+}
+
 // initializeTemplates
 void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
+	//Find aruco marker
+	vector<Point2f> markerCorners = detectAruco(templateImage);
+	//top left, bottom right
+	//Need to know this so any contours within aruco marker region
+	//are not detected, only bounding boxes of letters are detected
+	Point tl = markerCorners[1];
+	Point br = markerCorners[3];
+	//x increases in a counterintuitive direction
+	int arucoMinX = br.x;
+	int arucoMaxX = tl.x;
+	int arucoMinY = tl.y;
+	int arucoMaxY = br.y;
 
 	//Mat A = imread("A.png", CV_LOAD_IMAGE_COLOR);
 	//letters.push_back(A);
@@ -56,31 +104,45 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	vector<vector<Point> > contours;
 	vector<Vec4i> hierarchy;
 
-	/*cv::findContours(
-		binaryImage, // input image (is destroyed)
-		contours, // output vector of contours
-		hierarchy, // hierarchical representation
-		cv::RETR_CCOMP, // retrieve all contours
-		cv::CHAIN_APPROX_NONE); // all pixels of each contours*/
+	//binaryImage, input image (is destroyed)
 	findContours(binaryImage, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
 
 	//Source for below code:
 	//https://docs.opencv.org/3.3.0/da/d0c/tutorial_bounding_rects_circles.html
 
 	vector<vector<Point> > contours_poly(contours.size());
-	vector<Rect> boundRect(contours.size());
+	vector<Rect> boundRect(contours.size()+1); //last is bounding rect of aruco mark
 	vector<Point2f>center(contours.size());
 	vector<float>radius(contours.size());
 	RNG rng(12345);
 
+	Mat coloredBounds = templateImage.clone();
+
 	int lettersCounter = 0;
 
 	for (unsigned int i = 0; i < (int)contours.size(); i++) {
-		//int i2 = hierarchy[i][2];
-		//if (i2 < 0) continue; // See if it has a child inside
 
 		if (contourArea(contours[i], true) > 0) {
 			//cout << "black" << endl;
+			//check to make sure its not part of the aruco marker
+			//to do that, we must know the centroid of current contour
+			//Sources: https://docs.opencv.org/3.3.1/dd/d49/tutorial_py_contour_features.html
+			//https://docs.opencv.org/2.4/modules/imgproc/doc/structural_analysis_and_shape_descriptors.html
+
+			Moments M = moments(contours[i]);
+			int cx = int(M.m10 / M.m00);
+			int cy = int(M.m01 / M.m00);
+			Point centroid;
+			centroid.x = cx;
+			centroid.y = cy;
+
+			//ignore anything within the aruco marker's bounds
+			if ((cx > arucoMinX && cx < arucoMaxX)&&(cy > arucoMinY && cy < arucoMaxY)) {
+				continue;
+			}
+
+			drawMarker(coloredBounds, centroid, 255);
+
 			lettersCounter++;
 		}
 		else {
@@ -95,6 +157,7 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	}
 
 	cout << "# letters: " << lettersCounter;
+	boundRect[lettersCounter+1] = boundingRect(markerCorners);
 
 	//Mat drawing = Mat::zeros(binaryImage.size(), CV_8UC3);
 	int bound = boundRect.size();
@@ -102,15 +165,10 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	{
 		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 		//drawContours(drawing, contours_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point());
-		rectangle(templateImage, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0);
+		rectangle(coloredBounds, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0);
 		//circle(drawing, center[i], (int)radius[i], color, 2, 8, 0);
 	}
-	//namedWindow("Contours", WINDOW_AUTOSIZE);
-	//imshow("Contours", drawing);
-	showImage(templateImage, "Bounding boxes.");
-
-
-
+	showImageResize(coloredBounds, "Bounding boxes.");
 }
 
 // MAIN
