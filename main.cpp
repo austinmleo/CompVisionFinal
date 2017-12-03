@@ -18,6 +18,8 @@ const float markerLength = 2.0;
 using namespace cv;
 using namespace std;
 
+bool useAruco = false;
+
 Mat readImage(String filename) {
 	cv::Mat image = cv::imread(filename, CV_LOAD_IMAGE_UNCHANGED);
 
