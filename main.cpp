@@ -132,8 +132,8 @@ vector<Rect> sortBoundingRect(vector<Rect> boundRect) {
 
 }
 
-// initializeTemplates
-void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
+// get bounds of letters
+vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
 	//Find aruco marker
 	vector<Point2f> markerCorners = detectAruco(templateImage);
 	//top left, bottom right
@@ -169,7 +169,6 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	//Source for below code:
 	//https://docs.opencv.org/3.3.0/da/d0c/tutorial_bounding_rects_circles.html
 
-	int numChars = 26;
 	vector<vector<Point> > contours_poly(contours.size());
 	vector<Rect> boundRect(numChars+1); //last is bounding rect of aruco mark
 	vector<Point2f>center(contours.size());
@@ -223,6 +222,13 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 
 	Mat sortedBounds = templateImage.clone();
 	drawBoundingRect(sortedBounds, sortedRect);
+
+	return sortedRect;
+}
+
+void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
+	vector<Rect> boundRect = getBoundingRect(templateImage);
+
 }
 
 // MAIN
