@@ -73,8 +73,20 @@ vector<Point2f> detectAruco(Mat image) {
 	return markerCorners[0];
 }
 
-void drawBoundingRect() {
+void drawBoundingRect(Mat image, vector<Rect> boundRect) {
+	RNG rng(12345);
 
+	//Mat drawing = Mat::zeros(binaryImage.size(), CV_8UC3);
+	int bound = boundRect.size();
+	for (size_t i = 0; i< bound; i++)
+	{
+		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+		//drawContours(drawing, contours_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point());
+		rectangle(image, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0);
+		putText(image, to_string(i + 1), boundRect[i].tl(), 1, 2, color, 2);
+		//circle(drawing, center[i], (int)radius[i], color, 2, 8, 0);
+	}
+	showImageResize(image, "Bounding boxes.");
 }
 
 // initializeTemplates
@@ -118,7 +130,6 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	vector<Rect> boundRect(contours.size()+1); //last is bounding rect of aruco mark
 	vector<Point2f>center(contours.size());
 	vector<float>radius(contours.size());
-	RNG rng(12345);
 
 	Mat coloredBounds = templateImage.clone();
 
@@ -160,19 +171,10 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	}
 
 	cout << "# letters: " << lettersCounter;
-	boundRect[lettersCounter+1] = boundingRect(markerCorners);
+	//Insert aruco marker as #27 (index 26)
+	boundRect[lettersCounter] = boundingRect(markerCorners);
 
-	//Mat drawing = Mat::zeros(binaryImage.size(), CV_8UC3);
-	int bound = boundRect.size();
-	for (size_t i = 0; i< bound; i++)
-	{
-		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-		//drawContours(drawing, contours_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point());
-		rectangle(coloredBounds, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0);
-		putText(coloredBounds, to_string(i + 1), boundRect[i].tl(), 1, 2, color, 2);
-		//circle(drawing, center[i], (int)radius[i], color, 2, 8, 0);
-	}
-	showImageResize(coloredBounds, "Bounding boxes.");
+	drawBoundingRect(coloredBounds, boundRect);
 }
 
 // MAIN
