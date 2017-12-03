@@ -89,6 +89,27 @@ void drawBoundingRect(Mat image, vector<Rect> boundRect) {
 	showImageResize(image, "Bounding boxes.");
 }
 
+//Sources: https://stackoverflow.com/questions/25529646/sorting-vectorpoints-from-top-to-bottom-then-from-left-to-right-using-stl-in-c
+//http://answers.opencv.org/question/31515/sorting-contours-from-left-to-right-and-top-to-bottom/
+
+struct text_order_sorter
+{
+	bool operator ()(const Rect ra, const Rect rb) {
+		// scale factor for y should be larger than img.width
+		int scale = 1000;
+		return ((ra.tl().x + scale * ra.tl().y) > (rb.tl().x + scale * rb.tl().y));
+	}
+};
+
+vector<Rect> sortBoundingRect(vector<Rect> boundRect) {
+	//vector<Rect> sortedRect(boundRect.size());
+	//margin of error, other letters must be +-margin close to the "y" that this line of letters are located on
+	//int marginY = 5;
+	sort(boundRect.begin(), boundRect.end(), text_order_sorter());
+	return boundRect;
+
+}
+
 // initializeTemplates
 void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	//Find aruco marker
@@ -175,6 +196,10 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	boundRect[lettersCounter] = boundingRect(markerCorners);
 
 	drawBoundingRect(coloredBounds, boundRect);
+	vector<Rect> sortedRect = sortBoundingRect(boundRect);
+
+	Mat sortedBounds = templateImage.clone();
+	drawBoundingRect(sortedBounds, sortedRect);
 }
 
 // MAIN
