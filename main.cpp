@@ -78,7 +78,7 @@ void drawBoundingRect(Mat image, vector<Rect> boundRect) {
 
 	//Mat drawing = Mat::zeros(binaryImage.size(), CV_8UC3);
 	int bound = boundRect.size();
-	for (size_t i = 0; i< bound; i++)
+	for (int i = 0; i< bound; i++)
 	{
 		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 		//drawContours(drawing, contours_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point());
@@ -91,13 +91,30 @@ void drawBoundingRect(Mat image, vector<Rect> boundRect) {
 
 //Sources: https://stackoverflow.com/questions/25529646/sorting-vectorpoints-from-top-to-bottom-then-from-left-to-right-using-stl-in-c
 //http://answers.opencv.org/question/31515/sorting-contours-from-left-to-right-and-top-to-bottom/
+//https://stackoverflow.com/questions/29630052/ordering-coordinates-from-top-left-to-bottom-right
 
 struct text_order_sorter
 {
 	bool operator ()(const Rect ra, const Rect rb) {
+		//get the top left point of each rectangle
+		//the first step is to "warp" the points only during the sort
+		//so that they fall into matching gridlines
+		//by dividing by a constant to make the number smaller,
+		//then rounding it, then multiplying it back up,
+		//it will normalize the coordinates to fall into an even grid
+		//after that we can employ a simple method to sort by y then x
+		int m = 100;
+		int n = 100;
+		int xa = int(ra.tl().x / n)*n;
+		int ya = int(ra.tl().y / m)*m;
+		int xb = int(rb.tl().x / n)*n;
+		int yb = int(rb.tl().y / m)*m;
+
 		// scale factor for y should be larger than img.width
-		int scale = 1000;
-		return ((ra.tl().x + scale * ra.tl().y) > (rb.tl().x + scale * rb.tl().y));
+		//this scale factor allows the different axes to order points correctly
+		int scale = 2000;
+
+		return ((xa + scale * ya) > (xb + scale * yb));
 	}
 };
 
@@ -106,6 +123,11 @@ vector<Rect> sortBoundingRect(vector<Rect> boundRect) {
 	//margin of error, other letters must be +-margin close to the "y" that this line of letters are located on
 	//int marginY = 5;
 	sort(boundRect.begin(), boundRect.end(), text_order_sorter());
+
+	//this sort returns the vector in exactly opposite order
+	//flip to make it match text order
+	std::reverse(boundRect.begin(), boundRect.end());
+	
 	return boundRect;
 
 }
@@ -147,8 +169,9 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	//Source for below code:
 	//https://docs.opencv.org/3.3.0/da/d0c/tutorial_bounding_rects_circles.html
 
+	int numChars = 26;
 	vector<vector<Point> > contours_poly(contours.size());
-	vector<Rect> boundRect(contours.size()+1); //last is bounding rect of aruco mark
+	vector<Rect> boundRect(numChars+1); //last is bounding rect of aruco mark
 	vector<Point2f>center(contours.size());
 	vector<float>radius(contours.size());
 
