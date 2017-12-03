@@ -68,7 +68,7 @@ vector<Point2f> detectAruco(Mat image) {
 		Scalar color = 255;
 		putText(image, to_string(i+1), markerCorners[0][i], fontFace, fontScale, color, 3);
 	}
-	showImageResize(image, "Aruco markers");
+	//showImageResize(image, "Aruco markers");
 	//only one aruco marker should be found
 	return markerCorners[0];
 }
@@ -275,17 +275,33 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 
 	vector<Rect> boundRect = getBoundingRect(templateImage);
 	cropLetters(templateImage, boundRect, letters, doImageWrite);
-	showImageVector(letters);
+	//showImageVector(letters);
+}
+
+void transformImage(vector<Mat>& letters) {
+	//transform stuff
+	Mat correctedImage;
+	//readScaledText(correctedImage, letters);
+}
+
+//TODO Austin add code here
+void readScaledText(Mat image, vector<Mat>& letters, int numChar = 30) {
+	vector<Rect> boundRect = getBoundingRect(image, numChar);
+
+	//TODO
+
 }
 
 // MAIN
 int main(int argc, char* argv[])
 {
 	Mat trainingImage = readImage("training_with_scale_ARUCO.bmp");
-	//showImage(trainingImage, "Template image");
+	Mat inputImage = readImage("input_normalKerning.bmp");
+	//showImage(inputImage, "Image to read");
 
 	vector<Mat> letters;
 	initializeTemplates(trainingImage, letters);
+	readScaledText(inputImage, letters);
 
 	/*
 	printf("This program detects ArUco markers.\n");
