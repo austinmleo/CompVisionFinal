@@ -226,9 +226,37 @@ vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
 	return sortedRect;
 }
 
+//Source: https://stackoverflow.com/questions/14365411/opencv-crop-image
+
+void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
+	//65 = A, 90 = Z
+	int letter = 65;
+
+	for (int i = 0; i < (int)boundRect.size(); i++) {
+		//int startX = 200, startY = 200, width = 100, height = 100;
+		int whitespaceY = 4;
+		int whitespaceX = 8;
+		int startX = boundRect[i].tl().x - whitespaceX;
+		int startY = boundRect[i].tl().y - whitespaceY;
+		int width = boundRect[i].width + whitespaceX * 2;
+		int height = boundRect[i].height + whitespaceY * 2;
+
+		Mat cropPixels(image, Rect(startX, startY, width, height));
+		Mat croppedImage;
+		// Copy the data into new matrix
+		cropPixels.copyTo(croppedImage);
+
+		string charStr;
+		charStr = (char)letter;
+		showImage(croppedImage, "Cropped " + charStr);
+		imwrite(charStr + ".png", croppedImage);
+		letter++;
+	}
+}
+
 void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	vector<Rect> boundRect = getBoundingRect(templateImage);
-
+	cropLetters(templateImage, boundRect, letters);
 }
 
 // MAIN
