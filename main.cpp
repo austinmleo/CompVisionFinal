@@ -239,7 +239,7 @@ void showImageVector(vector<Mat>& imageVec) {
 
 //Source: https://stackoverflow.com/questions/14365411/opencv-crop-image
 
-void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
+void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters, bool doImageWrite) {
 	//65 = A, 90 = Z
 	int letter = 65;
 
@@ -263,14 +263,18 @@ void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
 		string charStr;
 		charStr = (char)letter;
 		//showImage(croppedImage, "Cropped " + charStr);
-		imwrite(charStr + ".png", croppedImage);
+		if (doImageWrite) {
+			imwrite(charStr + ".png", croppedImage);
+		}
 		letter++;
 	}
 }
 
 void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
+	bool doImageWrite = true;
+
 	vector<Rect> boundRect = getBoundingRect(templateImage);
-	cropLetters(templateImage, boundRect, letters);
+	cropLetters(templateImage, boundRect, letters, doImageWrite);
 	showImageVector(letters);
 }
 
