@@ -18,7 +18,9 @@ const float markerLength = 2.0;
 using namespace cv;
 using namespace std;
 
+//Global flags
 bool useAruco = false;
+bool doImageWrite = false;
 
 Mat readImage(String filename) {
 	cv::Mat image = cv::imread(filename, CV_LOAD_IMAGE_UNCHANGED);
@@ -136,22 +138,32 @@ vector<Rect> sortBoundingRect(vector<Rect> boundRect) {
 
 // get bounds of letters
 vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
-	//Find aruco marker
-	vector<Point2f> markerCorners = detectAruco(templateImage);
-	//top left, bottom right
-	//Need to know this so any contours within aruco marker region
-	//are not detected, only bounding boxes of letters are detected
-	Point tl = markerCorners[1];
-	Point br = markerCorners[3];
-	//x increases in a counterintuitive direction
-	int arucoMinX = br.x;
-	int arucoMaxX = tl.x;
-	int arucoMinY = tl.y;
-	int arucoMaxY = br.y;
+
+	int arucoMinX;
+	int arucoMaxX;
+	int arucoMinY;
+	int arucoMaxY;
+	vector<Point2f> markerCorners;
+
+	if (useAruco) {
+		//Find aruco marker
+		markerCorners = detectAruco(templateImage);
+		//top left, bottom right
+		//Need to know this so any contours within aruco marker region
+		//are not detected, only bounding boxes of letters are detected
+		Point tl = markerCorners[1];
+		Point br = markerCorners[3];
+		//x increases in a counterintuitive direction
+		arucoMinX = br.x;
+		arucoMaxX = tl.x;
+		arucoMinY = tl.y;
+		arucoMaxY = br.y;
+	}
 
 	Mat binaryImage;
 	Mat gray;
-	int thresh = 0;
+	int thresh = 100;
+	if (useAruco) thresh = 0;
 	int const max_BINARY_value = 255;
 	int threshold_type = THRESH_BINARY;
 
@@ -166,11 +178,49 @@ vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
 	//binaryImage, input image (is destroyed)
 	findContours(binaryImage, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
 
+	Rect bigRect;
+	//check all black areas to find biggest
+	//so we know where aruco marker is
+	//if aruco is not enabled
+	if (!useAruco) {
+		vector<Point> contour_poly;
+		int maxArea = 0;
+		int maxAreaIndex = 0;
+
+		for (unsigned int i = 0; i < (int)contours.size(); i++) {
+			if (contourArea(contours[i], true) > 0) {
+				//cout << "black" << endl;
+				int area = contourArea(contours[i]);
+				if (area > maxArea) {
+					maxArea = area;
+					maxAreaIndex = i;
+				}
+			}
+			else {
+				//cout << "white" << endl;
+				//ignore white
+				continue;
+			}
+		}
+
+		approxPolyDP(Mat(contours[maxAreaIndex]), contour_poly, 3, true);
+		bigRect = boundingRect(Mat(contour_poly));
+
+		arucoMinX = bigRect.tl().x;
+		arucoMaxX = arucoMinX + bigRect.width;
+		arucoMinY = bigRect.tl().y;
+		arucoMaxY = arucoMinY + bigRect.height;
+
+		Mat biggestRegion = templateImage.clone();
+		drawBoundingRect(biggestRegion, { bigRect });
+	}
+
+
 	//Source for below code:
 	//https://docs.opencv.org/3.3.0/da/d0c/tutorial_bounding_rects_circles.html
 
 	vector<vector<Point> > contours_poly(contours.size());
-	vector<Rect> boundRect(numChars+1); //last is bounding rect of aruco mark
+	vector<Rect> boundRect(numChars + 1); //last is bounding rect of aruco mark
 	vector<Point2f>center(contours.size());
 	vector<float>radius(contours.size());
 
@@ -195,7 +245,8 @@ vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
 			centroid.y = cy;
 
 			//ignore anything within the aruco marker's bounds
-			if ((cx > arucoMinX && cx < arucoMaxX)&&(cy > arucoMinY && cy < arucoMaxY)) {
+			//this should also work if just using the largest region to decide which is the aruco marker
+			if ((cx > arucoMinX && cx < arucoMaxX) && (cy > arucoMinY && cy < arucoMaxY)) {
 				continue;
 			}
 
@@ -214,8 +265,14 @@ vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
 	}
 
 	cout << "# letters: " << lettersCounter;
-	//Insert aruco marker as #27 (index 26)
-	boundRect[lettersCounter] = boundingRect(markerCorners);
+
+	if (useAruco) {
+		//Insert aruco marker as #27 (index 26)
+		boundRect[lettersCounter] = boundingRect(markerCorners);
+	}
+	else {
+		boundRect[lettersCounter] = bigRect;
+	}
 
 	drawBoundingRect(coloredBounds, boundRect);
 	vector<Rect> sortedRect = sortBoundingRect(boundRect);
@@ -241,7 +298,7 @@ void showImageVector(vector<Mat>& imageVec) {
 
 //Source: https://stackoverflow.com/questions/14365411/opencv-crop-image
 
-void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters, bool doImageWrite) {
+void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
 	//65 = A, 90 = Z
 	int letter = 65;
 
@@ -273,10 +330,8 @@ void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters, bool d
 }
 
 void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
-	bool doImageWrite = true;
-
 	vector<Rect> boundRect = getBoundingRect(templateImage);
-	cropLetters(templateImage, boundRect, letters, doImageWrite);
+	cropLetters(templateImage, boundRect, letters);
 	//showImageVector(letters);
 }
 
