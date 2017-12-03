@@ -147,8 +147,6 @@ vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
 	int arucoMinY = tl.y;
 	int arucoMaxY = br.y;
 
-	//Mat A = imread("A.png", CV_LOAD_IMAGE_COLOR);
-	//letters.push_back(A);
 	Mat binaryImage;
 	Mat gray;
 	int thresh = 0;
@@ -226,6 +224,19 @@ vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
 	return sortedRect;
 }
 
+
+void showImageVector(vector<Mat>& imageVec) {
+	int letter = 65;
+
+	for (int i = 0; i < (int)imageVec.size(); i++) {
+		string charStr;
+		charStr = (char)letter;
+		showImage(imageVec[i], "Cropped " + charStr);
+		letter++;
+	}
+	
+}
+
 //Source: https://stackoverflow.com/questions/14365411/opencv-crop-image
 
 void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
@@ -246,9 +257,12 @@ void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
 		// Copy the data into new matrix
 		cropPixels.copyTo(croppedImage);
 
+		//add to image array
+		letters.push_back(croppedImage);
+
 		string charStr;
 		charStr = (char)letter;
-		showImage(croppedImage, "Cropped " + charStr);
+		//showImage(croppedImage, "Cropped " + charStr);
 		imwrite(charStr + ".png", croppedImage);
 		letter++;
 	}
@@ -257,6 +271,7 @@ void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
 void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	vector<Rect> boundRect = getBoundingRect(templateImage);
 	cropLetters(templateImage, boundRect, letters);
+	showImageVector(letters);
 }
 
 // MAIN
