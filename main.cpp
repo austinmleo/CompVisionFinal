@@ -73,6 +73,10 @@ vector<Point2f> detectAruco(Mat image) {
 	return markerCorners[0];
 }
 
+void drawBoundingRect() {
+
+}
+
 // initializeTemplates
 void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	//Find aruco marker
@@ -142,8 +146,6 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 			}
 
 			drawMarker(coloredBounds, centroid, 255);
-
-			lettersCounter++;
 		}
 		else {
 			//cout << "white" << endl;
@@ -153,6 +155,7 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 
 		approxPolyDP(Mat(contours[i]), contours_poly[i], 3, true);
 		boundRect[lettersCounter] = boundingRect(Mat(contours_poly[i]));
+		lettersCounter++;
 		//minEnclosingCircle(contours_poly[i], center[i], radius[i]);
 	}
 
@@ -166,6 +169,7 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 		//drawContours(drawing, contours_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point());
 		rectangle(coloredBounds, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0);
+		putText(coloredBounds, to_string(i + 1), boundRect[i].tl(), 1, 2, color, 2);
 		//circle(drawing, center[i], (int)radius[i], color, 2, 8, 0);
 	}
 	showImageResize(coloredBounds, "Bounding boxes.");
