@@ -352,17 +352,17 @@ void readScaledText(Mat image, vector<Mat>& letters, int numChar = 30) {
 			Mat templ = letters[j];
 			Mat result;
 
-			
-			matchTemplate(letter, templ, result, CV_TM_CCORR_NORMED);
+			if (templ.size().height > letter.size().height && templ.size().width > letter.size().width) {
+				matchTemplate(letter, templ, result, CV_TM_CCORR_NORMED);
 
-			double minVal; double maxVal; Point minLoc; Point maxLoc;
-			minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
-			if (maxVal > correllation) {
-				match = j;
-				correllation = maxVal;
+				double minVal; double maxVal; Point minLoc; Point maxLoc;
+				minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+				if (maxVal > correllation) {
+					match = j;
+					correllation = maxVal;
+				}
+				printf("match = %d\n", match);
 			}
-			printf("match = %d\n", match);
-			
 		}
 		printf("Best match was %d\n", match);
 	}
