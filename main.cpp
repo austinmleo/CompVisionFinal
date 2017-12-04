@@ -344,9 +344,29 @@ void transformImage(vector<Mat>& letters) {
 //TODO Austin add code here
 void readScaledText(Mat image, vector<Mat>& letters, int numChar = 30) {
 	vector<Rect> boundRect = getBoundingRect(image, numChar);
+	for(int i = 0; i < boundRect.size(); i++) {
+		int match;
+		float correllation = 0;
+		Mat letter = image(boundRect[i]);
+		for (int j = 0; j < letters.size(); j++) {
+			Mat templ = letters[j];
+			Mat result;
 
-	//TODO
+			
+			matchTemplate(letter, templ, result, CV_TM_CCORR_NORMED);
 
+			double minVal; double maxVal; Point minLoc; Point maxLoc;
+			minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+			if (maxVal > correllation) {
+				match = j;
+				correllation = maxVal;
+			}
+			printf("match = %d\n", match);
+			
+		}
+		printf("Best match was %d\n", match);
+	}
+	cv::waitKey(0);
 }
 
 // MAIN
