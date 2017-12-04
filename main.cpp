@@ -19,7 +19,7 @@ using namespace cv;
 using namespace std;
 
 //Global flags
-bool useAruco = false;
+bool useAruco = true;
 bool doImageWrite = false;
 
 Mat readImage(String filename) {
