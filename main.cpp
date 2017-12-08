@@ -141,7 +141,7 @@ vector<Rect> sortBoundingRect(vector<Rect> boundRect) {
 }
 
 // get bounds of letters
-vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
+void getBoundingRect(Mat templateImage, vector<Rect>& returnRect, int numChars = 26) {
 
 	int arucoMinX;
 	int arucoMaxX;
@@ -284,7 +284,8 @@ vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
 	Mat sortedBounds = templateImage.clone();
 	drawBoundingRect(sortedBounds, sortedRect);
 
-	return sortedRect;
+	//return sortedRect;
+	returnRect = sortedRect;
 }
 
 
@@ -334,20 +335,26 @@ void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
 }
 
 void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
-	vector<Rect> boundRect = getBoundingRect(templateImage);
+	vector<Rect> boundRect;
+	getBoundingRect(templateImage, boundRect);
 	cropLetters(templateImage, boundRect, letters);
 	//showImageVector(letters);
 }
 
-void transformImage(vector<Mat>& letters) {
+void transformImage(Mat image, vector<Mat>& letters) {
 	//transform stuff
+
+
+
+
 	Mat correctedImage;
 	//readScaledText(correctedImage, letters);
 }
 
 //TODO Austin add code here
 void readScaledText(Mat image, vector<Mat>& letters, int numChar = 30) {
-	vector<Rect> boundRect = getBoundingRect(image, numChar);
+	vector<Rect> boundRect;
+	getBoundingRect(image, boundRect, numChar);
 	for(int i = 0; i < boundRect.size(); i++) {
 		int match;
 		float correllation = 0;
@@ -373,7 +380,7 @@ void readScaledText(Mat image, vector<Mat>& letters, int numChar = 30) {
 	if (waitForUser) cv::waitKey(0);
 }
 
-void streamFromCamera() {
+Mat streamFromCamera() {
 	VideoCapture stream1(0);   //0 is the id of video device.0 if you have only one camera.
 
 	if (!stream1.isOpened()) { //check if video device has been initialised
@@ -386,9 +393,11 @@ void streamFromCamera() {
 		stream1.read(cameraFrame);
 		vector<Point2f> markerCorners;
 		detectAruco(cameraFrame, markerCorners);
+		vector<Rect> boundRect;
+		//getBoundingRect(cameraFrame, boundRect, 30);
 		imshow("cam", cameraFrame);
 		if (waitKey(30) >= 0)
-			break;
+			return cameraFrame;
 	}
 }
 
@@ -403,7 +412,9 @@ int main(int argc, char* argv[])
 	initializeTemplates(trainingImage, letters);
 	readScaledText(inputImage, letters);
 
-	streamFromCamera();
+	Mat cameraImg = streamFromCamera();
+	showImage(cameraImg, "chosen frame");
+	transformImage(cameraImg, letters);
 
 	/*
 	printf("This program detects ArUco markers.\n");
