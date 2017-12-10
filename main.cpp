@@ -21,6 +21,7 @@ using namespace std;
 //Global flags
 bool useAruco = true;
 bool doImageWrite = false;
+bool waitForUser = true;
 
 Mat readImage(String filename) {
 	cv::Mat image = cv::imread(filename, CV_LOAD_IMAGE_UNCHANGED);
@@ -38,17 +39,17 @@ Mat readImage(String filename) {
 void showImage(Mat image, String windowname) {
 	cv::namedWindow(windowname, CV_WINDOW_AUTOSIZE);
 	cv::imshow(windowname, image);
-	cv::waitKey(0);
+	if (waitForUser) cv::waitKey(0);
 }
 
 void showImageResize(Mat image, String windowname) {
 	cv::namedWindow(windowname, CV_WINDOW_NORMAL);
 	//cv::resizeWindow(windowname, image.size().width*scale, image.size().height*scale);
 	cv::imshow(windowname, image);
-	cv::waitKey(0);
+	if (waitForUser) cv::waitKey(0);
 }
 
-vector<Point2f> detectAruco(Mat image) {
+int detectAruco(Mat image, vector<Point2f>& markerCornersSingle) {
 	cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_ARUCO_ORIGINAL);
 	cv::Ptr<cv::aruco::DetectorParameters> detectorParams = cv::aruco::DetectorParameters::create();
 
@@ -64,17 +65,20 @@ vector<Point2f> detectAruco(Mat image) {
 	if (markerIds.size() > 0) {
 		// Draw all detected markers.
 		cv::aruco::drawDetectedMarkers(image, markerCorners, markerIds);
-	}
+		
 
-	for (unsigned int i = 0; i < (int)markerCorners[0].size(); i++) {
-		int fontFace = 1;
-		double fontScale = 5;
-		Scalar color = 255;
-		putText(image, to_string(i+1), markerCorners[0][i], fontFace, fontScale, color, 3);
+		for (unsigned int i = 0; i < (int)markerCorners[0].size(); i++) {
+			int fontFace = 1;
+			double fontScale = 5;
+			Scalar color = 255;
+			putText(image, to_string(i + 1), markerCorners[0][i], fontFace, fontScale, color, 3);
+		}
+		//showImageResize(image, "Aruco markers");
+		//only one aruco marker should be found
+		markerCornersSingle = markerCorners[0];
+		return 0; //success
 	}
-	//showImageResize(image, "Aruco markers");
-	//only one aruco marker should be found
-	return markerCorners[0];
+	return 1;
 }
 
 void drawBoundingRect(Mat image, vector<Rect> boundRect) {
@@ -137,7 +141,7 @@ vector<Rect> sortBoundingRect(vector<Rect> boundRect) {
 }
 
 // get bounds of letters
-vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
+void getBoundingRect(Mat templateImage, vector<Rect>& returnRect, int numChars = 26) {
 
 	int arucoMinX;
 	int arucoMaxX;
@@ -147,7 +151,7 @@ vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
 
 	if (useAruco) {
 		//Find aruco marker
-		markerCorners = detectAruco(templateImage);
+		detectAruco(templateImage, markerCorners);
 		//top left, bottom right
 		//Need to know this so any contours within aruco marker region
 		//are not detected, only bounding boxes of letters are detected
@@ -280,7 +284,8 @@ vector<Rect> getBoundingRect(Mat templateImage, int numChars = 26) {
 	Mat sortedBounds = templateImage.clone();
 	drawBoundingRect(sortedBounds, sortedRect);
 
-	return sortedRect;
+	//return sortedRect;
+	returnRect = sortedRect;
 }
 
 
@@ -330,13 +335,18 @@ void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
 }
 
 void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
-	vector<Rect> boundRect = getBoundingRect(templateImage);
+	vector<Rect> boundRect;
+	getBoundingRect(templateImage, boundRect);
 	cropLetters(templateImage, boundRect, letters);
 	//showImageVector(letters);
 }
 
-void transformImage(vector<Mat>& letters) {
+void transformImage(Mat image, vector<Mat>& letters) {
 	//transform stuff
+
+
+
+
 	Mat correctedImage;
 	//readScaledText(correctedImage, letters);
 }
@@ -344,10 +354,12 @@ void transformImage(vector<Mat>& letters) {
 //TODO Austin add code here
 void readScaledText(Mat testImage, vector<Mat>& letters, int numChar = 30) {
 	vector<Mat> testLetters;
-	vector<Rect> boundRect = getBoundingRect(testImage, numChar);
+	vector<Rect> boundRect;
+	getBoundingRect(testImage, boundRect, numChar);
 	//cropLetters(testImage, boundRect, testLetters);
 
 	printf("Test letters size: %d", testLetters.size());
+
 
 	for(int i = 0; i < boundRect.size(); i++) {
 		int match;
@@ -374,7 +386,28 @@ void readScaledText(Mat testImage, vector<Mat>& letters, int numChar = 30) {
 		printf("Best match was %d\n", match);
 		printf("Letter is %c\n", char(65 + match));
 	}
-	cv::waitKey(0);
+	if (waitForUser) cv::waitKey(0);
+}
+
+Mat streamFromCamera() {
+	VideoCapture stream1(0);   //0 is the id of video device.0 if you have only one camera.
+
+	if (!stream1.isOpened()) { //check if video device has been initialised
+		cout << "cannot open camera";
+	}
+
+	//unconditional loop
+	while (true) {
+		Mat cameraFrame;
+		stream1.read(cameraFrame);
+		vector<Point2f> markerCorners;
+		detectAruco(cameraFrame, markerCorners);
+		vector<Rect> boundRect;
+		//getBoundingRect(cameraFrame, boundRect, 30);
+		imshow("cam", cameraFrame);
+		if (waitKey(30) >= 0)
+			return cameraFrame;
+	}
 }
 
 // MAIN
@@ -387,6 +420,10 @@ int main(int argc, char* argv[])
 	vector<Mat> letters;
 	initializeTemplates(trainingImage, letters);
 	readScaledText(inputImage, letters);
+
+	Mat cameraImg = streamFromCamera();
+	showImage(cameraImg, "chosen frame");
+	transformImage(cameraImg, letters);
 
 	/*
 	printf("This program detects ArUco markers.\n");
