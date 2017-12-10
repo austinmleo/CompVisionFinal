@@ -142,7 +142,7 @@ vector<Rect> sortBoundingRect(vector<Rect> boundRect) {
 }
 
 // get bounds of letters
-void getBoundingRect(Mat templateImage, vector<Rect>& returnRect, int numChars = 27) {
+void getBoundingRect(Mat templateImage, vector<Rect>& returnRect) {
 
 	int arucoMinX;
 	int arucoMaxX;
@@ -220,12 +220,12 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect, int numChars =
 		drawBoundingRect(biggestRegion, { bigRect });
 	}
 
-
+	
 	//Source for below code:
 	//https://docs.opencv.org/3.3.0/da/d0c/tutorial_bounding_rects_circles.html
 
 	vector<vector<Point> > contours_poly(contours.size());
-	vector<Rect> boundRect(numChars + 1); //last is bounding rect of aruco mark
+	vector<Rect> boundRect; //last is bounding rect of aruco mark
 	vector<Point2f>center(contours.size());
 	vector<float>radius(contours.size());
 
@@ -264,7 +264,7 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect, int numChars =
 		}
 
 		approxPolyDP(Mat(contours[i]), contours_poly[i], 3, true);
-		boundRect[lettersCounter] = boundingRect(Mat(contours_poly[i]));
+		boundRect.push_back(boundingRect(Mat(contours_poly[i])));
 		lettersCounter++;
 		//minEnclosingCircle(contours_poly[i], center[i], radius[i]);
 	}
@@ -273,10 +273,10 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect, int numChars =
 
 	if (useAruco) {
 		//Insert aruco marker as #27 (index 26)
-		boundRect[lettersCounter] = boundingRect(markerCorners);
+		boundRect.push_back(boundingRect(markerCorners));
 	}
 	else {
-		boundRect[lettersCounter] = bigRect;
+		boundRect.push_back(bigRect);
 	}
 
 	drawBoundingRect(coloredBounds, boundRect);
@@ -342,11 +342,16 @@ void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
 	//showImageVector(letters);
 }
 
-void transformImage(Mat image, vector<Mat>& letters) {
+void transformImage(Mat image, Mat& transformedImage) {
 	//transform stuff
+	vector<Point2f> arucoCorners;
+	/*int success = detectAruco(image, arucoCorners);
 
-
-
+	if (success == 0) {
+		for (int i = 0; i < arucoCorners.size(); i++) {
+			printf("%f %f\n", arucoCorners[i].x, arucoCorners[i].y);
+		}
+	}*/
 
 	Mat correctedImage;
 	//readScaledText(correctedImage, letters);
@@ -395,7 +400,7 @@ string makeSentence(vector<string> words) {
 }
 
 //TODO Austin add code here
-void readScaledText(Mat testImage, vector<Mat>& trainingLetters, int numChar = 30) {
+void readScaledText(Mat testImage, vector<Mat>& trainingLetters) {
 	int currentX = -MAXINT;
 	int currentY = -MAXINT;
 	int lastX = -MAXINT;
@@ -403,7 +408,7 @@ void readScaledText(Mat testImage, vector<Mat>& trainingLetters, int numChar = 3
 	printf("%d\n", currentX);
 
 	vector<Rect> boundRect;
-	getBoundingRect(testImage, boundRect, numChar);
+	getBoundingRect(testImage, boundRect);
 
 	vector<string> words;
 	string word;
@@ -465,15 +470,18 @@ int main(int argc, char* argv[])
 	Mat trainingImage = readImage("training_with_scale_ARUCO.bmp");
 	Mat inputImage = readImage("input_normalKerning.bmp");
 	//showImage(inputImage, "Image to read");
+	Mat transformedImage;
 
 	vector<Mat> letters;
 	initializeTemplates(trainingImage, letters);
+
+	transformImage(inputImage, transformedImage);
 	readScaledText(inputImage, letters);
 
 	if (useCamera) {
 		Mat cameraImg = streamFromCamera();
 		showImage(cameraImg, "chosen frame");
-		transformImage(cameraImg, letters);
+		//transformImage(cameraImg, letters);
 	}
 
 	/*
