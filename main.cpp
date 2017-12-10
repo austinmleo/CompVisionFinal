@@ -380,6 +380,20 @@ char matchLetter(Mat testLetter, vector<Mat> trainingLetters) {
 	return letter;
 }
 
+string makeSentence(vector<string> words) {
+	string sentence = "";
+
+	for (int i = 0; i < words.size(); i++) {
+		if (words[i] != ".") {
+			sentence.append(" ");
+		}
+
+		sentence.append(words[i].c_str());
+	}
+
+	return sentence;
+}
+
 //TODO Austin add code here
 void readScaledText(Mat testImage, vector<Mat>& trainingLetters, int numChar = 30) {
 	int currentX = -MAXINT;
@@ -418,11 +432,10 @@ void readScaledText(Mat testImage, vector<Mat>& trainingLetters, int numChar = 3
 	}
 	words.push_back(word);
 
-	for (int i = 0; i < words.size(); i++) {
-		printf("%s\n", words[i].c_str());
-	}
+	printf("\n%s\n", makeSentence(words).c_str());
 
-	if (waitForUser) cv::waitKey(0);
+	//if (waitForUser) 
+	cv::waitKey(0);
 }
 
 Mat streamFromCamera() {
