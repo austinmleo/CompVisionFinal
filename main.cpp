@@ -22,7 +22,7 @@ using namespace std;
 bool useAruco = true;
 bool doImageWrite = false;
 bool waitForUser = true;
-bool useCamera = false;
+bool useCamera = true;
 bool drawMarkers = false;
 
 Mat readImage(String filename) {
@@ -520,13 +520,15 @@ int main(int argc, char* argv[])
 	vector<Mat> letters;
 	initializeTemplates(trainingImage, letters);
 
-	transformImage(inputImage, transformedImage);
-	readScaledText(transformedImage, letters);
+	//transformImage(inputImage, transformedImage);
+	//readScaledText(transformedImage, letters);
 
 	if (useCamera) {
 		Mat cameraImg = streamFromCamera();
 		showImage(cameraImg, "chosen frame");
 		//transformImage(cameraImg, letters);
+		transformImage(cameraImg, transformedImage);
+		readScaledText(transformedImage, letters);
 	}
 
 	/*
