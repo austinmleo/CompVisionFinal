@@ -400,13 +400,9 @@ void readScaledText(Mat testImage, vector<Mat>& trainingLetters, int numChar = 3
 		Mat testLetter = Mat(testImage, boundRect[i]);
 
 		char match = matchLetter(testLetter, trainingLetters);
-		printf("Letter is: %c\n", match);
-		printf("Current x = %d\n", currentX);
-		printf("Last x = %d\n", lastX);
 
 		if (currentY > lastY + 20 || currentX > lastX + 45) {
 			if (word != "") {
-				printf("%s\n", word.c_str());
 				words.push_back(word);
 			}
 			word = "";
