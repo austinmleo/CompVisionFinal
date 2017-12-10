@@ -22,15 +22,16 @@ using namespace std;
 bool useAruco = true;
 bool doImageWrite = false;
 bool waitForUser = true;
-bool useCamera = true;
+bool useCamera = false;
+bool drawMarkers = false;
 
 Mat readImage(String filename) {
-	cv::Mat image = cv::imread(filename, CV_LOAD_IMAGE_UNCHANGED);
+	Mat image = imread(filename, CV_LOAD_IMAGE_UNCHANGED);
 
 	if (image.empty())
 	{
 		cout << "Image not loaded";
-		std::exit(1);
+		exit(1);
 	}
 	else {
 		return image;
@@ -38,25 +39,25 @@ Mat readImage(String filename) {
 }
 
 void showImage(Mat image, String windowname) {
-	cv::namedWindow(windowname, CV_WINDOW_AUTOSIZE);
-	cv::imshow(windowname, image);
-	if (waitForUser) cv::waitKey(0);
+	namedWindow(windowname, CV_WINDOW_AUTOSIZE);
+	imshow(windowname, image);
+	if (waitForUser) waitKey(0);
 }
 
 void showImageResize(Mat image, String windowname) {
-	cv::namedWindow(windowname, CV_WINDOW_NORMAL);
-	//cv::resizeWindow(windowname, image.size().width*scale, image.size().height*scale);
-	cv::imshow(windowname, image);
-	if (waitForUser) cv::waitKey(0);
+	namedWindow(windowname, CV_WINDOW_NORMAL);
+	//resizeWindow(windowname, image.size().width*scale, image.size().height*scale);
+	imshow(windowname, image);
+	if (waitForUser) waitKey(0);
 }
 
-int detectAruco(Mat image, vector<Point2f>& markerCornersSingle) {
-	cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_ARUCO_ORIGINAL);
-	cv::Ptr<cv::aruco::DetectorParameters> detectorParams = cv::aruco::DetectorParameters::create();
+bool detectAruco(Mat image, vector<Point2f>& markerCornersSingle) {
+	Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
+	Ptr<aruco::DetectorParameters> detectorParams = aruco::DetectorParameters::create();
 
-	std::vector< int > markerIds;
-	std::vector< std::vector<cv::Point2f> > markerCorners, rejectedCandidates;
-	cv::aruco::detectMarkers(
+	vector< int > markerIds;
+	vector< vector<Point2f> > markerCorners, rejectedCandidates;
+	aruco::detectMarkers(
 		image, // input image
 		dictionary, // type of markers that will be searched for
 		markerCorners, // output vector of marker corners
@@ -65,21 +66,24 @@ int detectAruco(Mat image, vector<Point2f>& markerCornersSingle) {
 		rejectedCandidates);
 	if (markerIds.size() > 0) {
 		// Draw all detected markers.
-		cv::aruco::drawDetectedMarkers(image, markerCorners, markerIds);
-		
+		if (drawMarkers) {
 
-		for (unsigned int i = 0; i < (int)markerCorners[0].size(); i++) {
-			int fontFace = 1;
-			double fontScale = 5;
-			Scalar color = 255;
-			putText(image, to_string(i + 1), markerCorners[0][i], fontFace, fontScale, color, 3);
+			aruco::drawDetectedMarkers(image, markerCorners, markerIds);
+
+
+			for (unsigned int i = 0; i < (int)markerCorners[0].size(); i++) {
+				int fontFace = 1;
+				double fontScale = 5;
+				Scalar color = 255;
+				putText(image, to_string(i + 1), markerCorners[0][i], fontFace, fontScale, color, 3);
+			}
 		}
 		//showImageResize(image, "Aruco markers");
 		//only one aruco marker should be found
 		markerCornersSingle = markerCorners[0];
-		return 0; //success
+		return true; //success
 	}
-	return 1;
+	return false;
 }
 
 void drawBoundingRect(Mat image, vector<Rect> boundRect) {
@@ -135,11 +139,12 @@ vector<Rect> sortBoundingRect(vector<Rect> boundRect) {
 
 	//this sort returns the vector in exactly opposite order
 	//flip to make it match text order
-	std::reverse(boundRect.begin(), boundRect.end());
+	reverse(boundRect.begin(), boundRect.end());
 	
 	return boundRect;
 
 }
+
 
 // get bounds of letters
 void getBoundingRect(Mat templateImage, vector<Rect>& returnRect) {
@@ -172,8 +177,14 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect) {
 	int const max_BINARY_value = 255;
 	int threshold_type = THRESH_BINARY;
 
-	cv::cvtColor(templateImage, gray, CV_BGR2GRAY);
+	printf("templateImage type = %d\n", templateImage.type());
+	printf("templateImage channels = %d\n", templateImage.channels());
+	if (templateImage.type() != 0) {
+	cvtColor(templateImage, gray, CV_BGR2GRAY);
 	threshold(gray, binaryImage, thresh, max_BINARY_value, threshold_type);
+
+	}
+
 	//showImage(binaryImage, "Binary image");
 
 	//Find contours
@@ -231,7 +242,6 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect) {
 
 	Mat coloredBounds = templateImage.clone();
 
-	int lettersCounter = 0;
 
 	for (unsigned int i = 0; i < (int)contours.size(); i++) {
 
@@ -265,11 +275,9 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect) {
 
 		approxPolyDP(Mat(contours[i]), contours_poly[i], 3, true);
 		boundRect.push_back(boundingRect(Mat(contours_poly[i])));
-		lettersCounter++;
 		//minEnclosingCircle(contours_poly[i], center[i], radius[i]);
 	}
 
-	cout << "# letters: " << lettersCounter;
 
 	if (useAruco) {
 		//Insert aruco marker as #27 (index 26)
@@ -335,30 +343,57 @@ void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
 	}
 }
 
-void initializeTemplates(Mat templateImage, std::vector<Mat>& letters) {
+void initializeTemplates(Mat templateImage, vector<Mat>& letters) {
 	vector<Rect> boundRect;
 	getBoundingRect(templateImage, boundRect);
 	cropLetters(templateImage, boundRect, letters);
 	//showImageVector(letters);
 }
 
+
+
 void transformImage(Mat image, Mat& transformedImage) {
 	//transform stuff
-	vector<Point2f> arucoCorners;
-	/*int success = detectAruco(image, arucoCorners);
+	int erosion_size = 3;
 
-	if (success == 0) {
-		for (int i = 0; i < arucoCorners.size(); i++) {
-			printf("%f %f\n", arucoCorners[i].x, arucoCorners[i].y);
+	vector<Point2f> detectedCorners;
+
+	vector<Point2f> correspondingCorners = { Point2f(200.0, 20.0), Point2f(560.0, 20.0), Point2f(560.0, 380.0), Point2f(200.0, 380.0) };
+
+	if (detectAruco(image, detectedCorners)) {
+
+		for (int i = 0; i < detectedCorners.size(); i++) {
+			printf("%f %f\n", detectedCorners[i].x, detectedCorners[i].y);
 		}
-	}*/
+	}
+	
+	Mat lambda = Mat::zeros(image.rows, image.cols, image.type());
+	lambda = getPerspectiveTransform(detectedCorners, correspondingCorners);
+	warpPerspective(image, transformedImage, lambda, transformedImage.size());
 
-	Mat correctedImage;
+	Mat grayScale, bin;
+	//cvtColor(transformedImage, grayScale, CV_BGR2GRAY);
+	//threshold(grayScale, bin, 100, 255, THRESH_BINARY);
+	//cvtColor(bin, transformedImage, CV_GRAY2BGR);
+
+	Mat element = getStructuringElement(MORPH_RECT,
+		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
+		Point(erosion_size, erosion_size));
+
+	Mat ero;
+	erode(transformedImage, ero, element);
+	dilate(ero, ero, element);
+	imshow("Input", image);
+	imshow("Output", ero);
+	transformedImage = ero;
+	printf("Image type = %d\n", ero.type());
+	printf("Image channels = %d\n", ero.channels());
 	//readScaledText(correctedImage, letters);
 }
 
 char matchLetter(Mat testLetter, vector<Mat> trainingLetters) {
-	int match;
+	int match = -MAXINT;
+	char letter;
 	float correllation = 0;
 
 	for (int j = 0; j < trainingLetters.size(); j++) {
@@ -376,11 +411,22 @@ char matchLetter(Mat testLetter, vector<Mat> trainingLetters) {
 				correllation = maxVal;
 			}
 		}
+		else {
+			printf("%f %f\n", templ.size().width, templ.size().height);
+			printf("%f %f\n", testLetter.size().width, testLetter.size().height);
+		}
+
 	}
-	if (match == 26) {
-		match = -19;
+	if (match != -MAXINT) {
+		if (match == 26) {
+			match = -19;
+		}
+		letter = char(65 + match);
 	}
-	char letter = char(65 + match);
+	else {
+		letter = '-';
+	}
+
 
 	return letter;
 }
@@ -405,7 +451,6 @@ void readScaledText(Mat testImage, vector<Mat>& trainingLetters) {
 	int currentY = -MAXINT;
 	int lastX = -MAXINT;
 	int lastY = -MAXINT;
-	printf("%d\n", currentX);
 
 	vector<Rect> boundRect;
 	getBoundingRect(testImage, boundRect);
@@ -439,8 +484,8 @@ void readScaledText(Mat testImage, vector<Mat>& trainingLetters) {
 
 	printf("\n%s\n", makeSentence(words).c_str());
 
-	//if (waitForUser) 
-	cv::waitKey(0);
+	if (waitForUser) 
+		waitKey(0);
 }
 
 Mat streamFromCamera() {
@@ -458,7 +503,7 @@ Mat streamFromCamera() {
 		detectAruco(cameraFrame, markerCorners);
 		vector<Rect> boundRect;
 		//getBoundingRect(cameraFrame, boundRect, 30);
-		imshow("cam", cameraFrame);
+		imshow("Unregistered HyperCam 2", cameraFrame);
 		if (waitKey(30) >= 0)
 			return cameraFrame;
 	}
@@ -468,7 +513,7 @@ Mat streamFromCamera() {
 int main(int argc, char* argv[])
 {
 	Mat trainingImage = readImage("training_with_scale_ARUCO.bmp");
-	Mat inputImage = readImage("input_normalKerning.bmp");
+	Mat inputImage = readImage("skew.bmp");
 	//showImage(inputImage, "Image to read");
 	Mat transformedImage;
 
@@ -476,7 +521,7 @@ int main(int argc, char* argv[])
 	initializeTemplates(trainingImage, letters);
 
 	transformImage(inputImage, transformedImage);
-	readScaledText(inputImage, letters);
+	readScaledText(transformedImage, letters);
 
 	if (useCamera) {
 		Mat cameraImg = streamFromCamera();
@@ -514,7 +559,7 @@ int main(int argc, char* argv[])
 	printf("Image width=%f, height=%f\n", WIDTH, HEIGHT);
 
 
-	std::vector<Mat> letters; 
+	vector<Mat> letters; 
 	initializeTemplates(letters);
 	
 
@@ -530,8 +575,8 @@ int main(int argc, char* argv[])
 
 		if (image.empty()) break;
 
-		std::vector< int > markerIds;
-		std::vector< std::vector<Point2f> > markerCorners, rejectedCandidates;
+		vector< int > markerIds;
+		vector< vector<Point2f> > markerCorners, rejectedCandidates;
 		aruco::detectMarkers(
 			image,				// input image
 			dictionary,			// type of markers that will be searched for
@@ -543,7 +588,7 @@ int main(int argc, char* argv[])
 		if (markerIds.size() > 0) {
 			// Draw all detected markers.
 			aruco::drawDetectedMarkers(image, markerCorners, markerIds);
-			std::vector< Vec3d > rvecs, tvecs;
+			vector< Vec3d > rvecs, tvecs;
 
 			aruco::estimatePoseSingleMarkers(
 				markerCorners,	// vector of already detected markers corners
@@ -571,9 +616,9 @@ int main(int argc, char* argv[])
 										   // Draw a symbol in the upper right corner of the detected marker.
 
 										   // Draw a circle on the button relative to marker 0.
-					std::vector<Point3d> pointsInterest;
+					vector<Point3d> pointsInterest;
 					pointsInterest.push_back(marker0Button);
-					std::vector<Point2d> p;
+					vector<Point2d> p;
 					projectPoints(pointsInterest, rvecs[i], tvecs[i], K, distCoeffs, p);
 					circle(image,
 						p[0],						// image point,
@@ -595,9 +640,9 @@ int main(int argc, char* argv[])
 											// Draw a symbol in the upper right corner of the detected marker.
 
 											// Draw a circle on the button relative to marker 1.
-					std::vector<Point3d> pointsInterest;
+					vector<Point3d> pointsInterest;
 					pointsInterest.push_back(marker1Button);
-					std::vector<Point2d> p;
+					vector<Point2d> p;
 					projectPoints(pointsInterest, rvecs[i], tvecs[i], K, distCoeffs, p);
 					circle(image,
 						p[0],						// image point,
