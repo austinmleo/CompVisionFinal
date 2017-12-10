@@ -22,6 +22,7 @@ using namespace std;
 bool useAruco = true;
 bool doImageWrite = false;
 bool waitForUser = true;
+bool useCamera = false;
 
 Mat readImage(String filename) {
 	cv::Mat image = cv::imread(filename, CV_LOAD_IMAGE_UNCHANGED);
@@ -456,9 +457,11 @@ int main(int argc, char* argv[])
 	initializeTemplates(trainingImage, letters);
 	readScaledText(inputImage, letters);
 
-	Mat cameraImg = streamFromCamera();
-	showImage(cameraImg, "chosen frame");
-	transformImage(cameraImg, letters);
+	if (useCamera) {
+		Mat cameraImg = streamFromCamera();
+		showImage(cameraImg, "chosen frame");
+		transformImage(cameraImg, letters);
+	}
 
 	/*
 	printf("This program detects ArUco markers.\n");
