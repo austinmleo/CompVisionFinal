@@ -342,17 +342,23 @@ void transformImage(vector<Mat>& letters) {
 }
 
 //TODO Austin add code here
-void readScaledText(Mat image, vector<Mat>& letters, int numChar = 30) {
-	vector<Rect> boundRect = getBoundingRect(image, numChar);
+void readScaledText(Mat testImage, vector<Mat>& letters, int numChar = 30) {
+	vector<Mat> testLetters;
+	vector<Rect> boundRect = getBoundingRect(testImage, numChar);
+	//cropLetters(testImage, boundRect, testLetters);
+
+	printf("Test letters size: %d", testLetters.size());
+
 	for(int i = 0; i < boundRect.size(); i++) {
 		int match;
 		float correllation = 0;
-		Mat letter = image(boundRect[i]);
+		Mat letter = Mat(testImage, boundRect[i]);
+		imshow("Letter", letter);
 		for (int j = 0; j < letters.size(); j++) {
 			Mat templ = letters[j];
 			Mat result;
-
-			if (templ.size().height > letter.size().height && templ.size().width > letter.size().width) {
+			imshow("Template", templ);
+			if (templ.size().height > letter.size().height && templ.size().width > letter.size().width ) {
 				matchTemplate(letter, templ, result, CV_TM_CCORR_NORMED);
 
 				double minVal; double maxVal; Point minLoc; Point maxLoc;
@@ -363,8 +369,10 @@ void readScaledText(Mat image, vector<Mat>& letters, int numChar = 30) {
 				}
 				printf("match = %d\n", match);
 			}
+			cv::waitKey(0);
 		}
 		printf("Best match was %d\n", match);
+		printf("Letter is %c\n", char(65 + match));
 	}
 	cv::waitKey(0);
 }
