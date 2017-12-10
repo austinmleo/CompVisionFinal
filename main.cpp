@@ -141,7 +141,7 @@ vector<Rect> sortBoundingRect(vector<Rect> boundRect) {
 }
 
 // get bounds of letters
-void getBoundingRect(Mat templateImage, vector<Rect>& returnRect, int numChars = 26) {
+void getBoundingRect(Mat templateImage, vector<Rect>& returnRect, int numChars = 27) {
 
 	int arucoMinX;
 	int arucoMaxX;
@@ -351,41 +351,80 @@ void transformImage(Mat image, vector<Mat>& letters) {
 	//readScaledText(correctedImage, letters);
 }
 
-//TODO Austin add code here
-void readScaledText(Mat testImage, vector<Mat>& letters, int numChar = 30) {
-	vector<Mat> testLetters;
-	vector<Rect> boundRect;
-	getBoundingRect(testImage, boundRect, numChar);
-	//cropLetters(testImage, boundRect, testLetters);
+char matchLetter(Mat testLetter, vector<Mat> trainingLetters) {
+	int match;
+	float correllation = 0;
 
-	for(int i = 0; i < boundRect.size(); i++) {
-		int match;
-		float correllation = 0;
-		Mat letter = Mat(testImage, boundRect[i]);
+	for (int j = 0; j < trainingLetters.size(); j++) {
+		Mat templ = trainingLetters[j];
+		Mat result;
 
-		for (int j = 0; j < letters.size(); j++) {
-			Mat templ = letters[j];
-			Mat result;
-			
-			//
-			if (templ.size().height > letter.size().height && templ.size().width > letter.size().width && \
-				templ.size().width * 0.40 < letter.size().width /*&& templ.size().height * 0.40 < letter.size().height*/) {
-				matchTemplate(letter, templ, result, CV_TM_CCORR_NORMED);
+		if (templ.size().height > testLetter.size().height && templ.size().width > testLetter.size().width && \
+			templ.size().width * 0.40 < testLetter.size().width && templ.size().height * 0.40 < testLetter.size().height) {
+			matchTemplate(testLetter, templ, result, CV_TM_CCORR_NORMED);
 
-				double minVal; double maxVal; Point minLoc; Point maxLoc;
-				minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
-				if (maxVal > correllation) {
-					match = j;
-					correllation = maxVal;
-				}
+			double minVal; double maxVal; Point minLoc; Point maxLoc;
+			minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+			if (maxVal > correllation) {
+				match = j;
+				correllation = maxVal;
 			}
 		}
-		if (match != NULL) {
-			//printf("Best match was %d\n", match);
-			printf("Letter is %c\n", char(65 + match));
+	}
+	if (match == 26) {
+		match = -19;
+	}
+	char letter = char(65 + match);
+
+	return letter;
+}
+
+//TODO Austin add code here
+void readScaledText(Mat testImage, vector<Mat>& trainingLetters, int numChar = 30) {
+	int currentX = -MAXINT;
+	int currentY = -MAXINT;
+	int lastX = -MAXINT;
+	int lastY = -MAXINT;
+	printf("%d\n", currentX);
+
+	vector<Rect> boundRect;
+	getBoundingRect(testImage, boundRect, numChar);
+
+	vector<string> words;
+	string word;
+
+	for(int i = 0; i < boundRect.size(); i++) {
+		currentX = boundRect[i].x;
+		currentY = boundRect[i].y;
+
+		Mat testLetter = Mat(testImage, boundRect[i]);
+
+		char match = matchLetter(testLetter, trainingLetters);
+		printf("Letter is: %c\n", match);
+		printf("Current x = %d\n", currentX);
+		printf("Last x = %d\n", lastX);
+
+		if (currentY > lastY + 20 || currentX > lastX + 45) {
+			if (word != "") {
+				printf("%s\n", word.c_str());
+				words.push_back(word);
+			}
+			word = "";
+			word.push_back(match);
+		}
+		else {
+			word.push_back(match);
 		}
 
+		lastX = currentX + boundRect[i].width;
+		lastY = currentY;
 	}
+	words.push_back(word);
+
+	for (int i = 0; i < words.size(); i++) {
+		printf("%s\n", words[i].c_str());
+	}
+
 	if (waitForUser) cv::waitKey(0);
 }
 
