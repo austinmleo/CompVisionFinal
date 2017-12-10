@@ -22,7 +22,7 @@ using namespace std;
 bool useAruco = true;
 bool doImageWrite = false;
 bool waitForUser = true;
-bool useCamera = false;
+bool useCamera = true;
 
 Mat readImage(String filename) {
 	cv::Mat image = cv::imread(filename, CV_LOAD_IMAGE_UNCHANGED);
