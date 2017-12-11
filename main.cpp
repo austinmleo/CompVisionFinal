@@ -381,8 +381,8 @@ void transformImage(Mat image, Mat& transformedImage) {
 
 	Mat ero;
 	erode(transformedImage, ero, element);
-	transformedImage = ero;
 	dilate(ero, ero, element);
+	transformedImage = ero;
 	imshow("Input", image);
 	imshow("Output", transformedImage);
 	//readScaledText(correctedImage, letters);
