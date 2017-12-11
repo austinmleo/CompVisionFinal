@@ -59,6 +59,7 @@ bool detectAruco(Mat image, vector<Point2f>& markerCornersSingle) {
 
 	vector< int > markerIds;
 	vector< vector<Point2f> > markerCorners, rejectedCandidates;
+	imshow("det", image);
 	aruco::detectMarkers(
 		image, // input image
 		dictionary, // type of markers that will be searched for
@@ -80,7 +81,7 @@ bool detectAruco(Mat image, vector<Point2f>& markerCornersSingle) {
 				putText(image, to_string(i + 1), markerCorners[0][i], fontFace, fontScale, color, 3);
 			}
 		}
-		//showImageResize(image, "Aruco markers");
+
 		//only one aruco marker should be found
 		markerCornersSingle = markerCorners[0];
 		return true; //success
@@ -182,9 +183,6 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect) {
 
 	cvtColor(templateImage, gray, CV_BGR2GRAY);
 	threshold(gray, binaryImage, thresh, max_BINARY_value, threshold_type);
-
-
-	showImageResize(binaryImage, "Binary image");
 
 	//Find contours
 	vector<vector<Point> > contours;
@@ -335,9 +333,9 @@ void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
 		string charStr;
 		charStr = (char)letter;
 		//showImage(croppedImage, "Cropped " + charStr);
-		if (doImageWrite) {
-			imwrite(charStr + ".png", croppedImage);
-		}
+		//if (doImageWrite) {
+		//	imwrite(charStr + ".png", croppedImage);
+		//}
 		letter++;
 	}
 }
@@ -349,10 +347,18 @@ void initializeTemplates(Mat templateImage, vector<Mat>& letters) {
 	//showImageVector(letters);
 }
 
+void erodeDilate(Mat& image, int erosion_size) {
+	Mat element = getStructuringElement(MORPH_RECT,
+		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
+		Point(erosion_size, erosion_size));
 
+	Mat output;
 
-void transformImage(Mat image, Mat& transformedImage) {
-	//transform stuff
+	erode(image, image, element);
+	dilate(image, image, element);
+}
+
+bool transformImage(Mat image, Mat& transformedImage) {
 	int erosion_size = 3;
 
 	vector<Point2f> detectedCorners;
@@ -364,28 +370,24 @@ void transformImage(Mat image, Mat& transformedImage) {
 		for (int i = 0; i < detectedCorners.size(); i++) {
 			printf("%f %f\n", detectedCorners[i].x, detectedCorners[i].y);
 		}
+
+		Mat lambda = Mat::zeros(image.rows, image.cols, image.type());
+		lambda = findHomography(detectedCorners, correspondingCorners);
+		warpPerspective(image, transformedImage, lambda, Size(793, 1122));
+
+		Mat grayScale, bin;
+		cvtColor(transformedImage, grayScale, CV_BGR2GRAY);
+
+		erodeDilate(transformedImage, erosion_size);
+		
+		return true;
+	}
+	else {
+		printf("No aruco marker found.");
+		return false;
 	}
 	
-	Mat lambda = Mat::zeros(image.rows, image.cols, image.type());
-	lambda = findHomography(detectedCorners, correspondingCorners);
-	warpPerspective(image, transformedImage, lambda, Size(793, 1122));
 
-	Mat grayScale, bin;
-	cvtColor(transformedImage, grayScale, CV_BGR2GRAY);
-	//threshold(grayScale, bin, 100, 255, THRESH_BINARY);
-	//cvtColor(bin, transformedImage, CV_GRAY2BGR);
-
-	Mat element = getStructuringElement(MORPH_RECT,
-		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
-		Point(erosion_size, erosion_size));
-
-	Mat ero;
-	erode(transformedImage, ero, element);
-	dilate(ero, ero, element);
-	transformedImage = ero;
-	showImageResize(image, "Input");
-	showImageResize(transformedImage, "Output");
-	//readScaledText(correctedImage, letters);
 }
 
 char matchLetter(Mat testLetter, vector<Mat> trainingLetters) {
@@ -401,6 +403,7 @@ char matchLetter(Mat testLetter, vector<Mat> trainingLetters) {
 			templ.size().width * 0.40 < testLetter.size().width && templ.size().height * 0.40 < testLetter.size().height) {
 			matchTemplate(testLetter, templ, result, CV_TM_CCORR_NORMED);
 
+
 			double minVal; double maxVal; Point minLoc; Point maxLoc;
 			minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
 			if (maxVal > correllation) {
@@ -408,15 +411,16 @@ char matchLetter(Mat testLetter, vector<Mat> trainingLetters) {
 				correllation = maxVal;
 			}
 		}
-		else {
-			printf("%f %f\n", templ.size().width, templ.size().height);
-			printf("%f %f\n", testLetter.size().width, testLetter.size().height);
-		}
 
 	}
 	if (match != -MAXINT) {
+		// If character is a .
 		if (match == 26) {
 			match = -19;
+		}
+		// If character is aruco marker
+		if (match == 27) {
+			match = -65;
 		}
 		letter = char(65 + match);
 	}
@@ -487,7 +491,7 @@ String readScaledText(Mat testImage, vector<Mat>& trainingLetters) {
 }
 
 Mat streamFromCamera() {
-	VideoCapture stream1(0);   //0 is the id of video device.0 if you have only one camera.
+	VideoCapture stream1("video.avi");   //0 is the id of video device.0 if you have only one camera.
 
 	if (!stream1.isOpened()) { //check if video device has been initialised
 		cout << "cannot open camera";
@@ -555,153 +559,38 @@ int main(int argc, char* argv[])
 	initializeTemplates(trainingImage, letters);
 
 	if (useCamera) {
+		//VideoCapture camera("video.avi");
+		//
+		//if (!camera.isOpened()) {
+		//	printf("Camera cannot be opened.");
+		//	return EXIT_FAILURE;
+		//}
+		//
+		//while (true) {
+		//	Mat frame;
+		//	camera >> frame;
+		//	if (transformImage(inputImage, transformedImage)) {
+		//		String sayText = readScaledText(transformedImage, letters);
+		//		sayWithSAPI(sayText);
+		//		waitKey();
+		//	}
+		//}
 		Mat cameraImg = streamFromCamera();
 		showImage(cameraImg, "chosen frame");
 		//transformImage(cameraImg, letters);
-		transformImage(cameraImg, transformedImage);
-		String sayText = readScaledText(transformedImage, letters);
-		sayWithSAPI(sayText);
+		if (transformImage(cameraImg, transformedImage)) {
+			String sayText = readScaledText(transformedImage, letters);
+			sayWithSAPI(sayText);
+		}
 	}
 	else {
-		transformImage(inputImage, transformedImage);
-		String sayText = readScaledText(transformedImage, letters);
-		sayWithSAPI(sayText);
+		if (transformImage(inputImage, transformedImage)) {
+			String sayText = readScaledText(transformedImage, letters);
+			sayWithSAPI(sayText);
+			waitKey();
+		}
 	}
 
 	//Don't dissappear until I confirm I saw the text output
 	waitKey();
-
-	/*
-	printf("This program detects ArUco markers.\n");
-	printf("Hit the ESC key to quit.\n");
-
-	// Camera intrinsic matrix
-	double K_[3][3] =
-	{ { 675, 0, 320 },
-	{ 0, 675, 240 },
-	{ 0, 0, 1 } };
-	Mat K = Mat(3, 3, CV_64F, K_).clone();
-
-	// Distortion coeffs (fill in your actual values here).
-	double dist_[] = { 0, 0, 0, 0, 0 };
-	Mat distCoeffs = Mat(5, 1, CV_64F, dist_).clone();
-
-	// Open video from file.
-	VideoCapture cap("hw4.avi");
-
-	if (!cap.isOpened()) { // check if we succeeded
-		printf("error - can't open the camera or video; hit any key to quit\n");
-		system("PAUSE");
-		return EXIT_FAILURE;
-	}
-
-	// See what the image size is from this file.
-	double WIDTH = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-	double HEIGHT = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-	printf("Image width=%f, height=%f\n", WIDTH, HEIGHT);
-
-
-	vector<Mat> letters; 
-	initializeTemplates(letters);
-	
-
-	// Allocate image.
-	Mat image;
-	Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_4X4_100);
-	Ptr<aruco::DetectorParameters> detectorParams = aruco::DetectorParameters::create();
-
-
-	// Run an infinite loop until user hits the ESC key.
-	while (1) {
-		cap >> image; // get image from camera
-
-		if (image.empty()) break;
-
-		vector< int > markerIds;
-		vector< vector<Point2f> > markerCorners, rejectedCandidates;
-		aruco::detectMarkers(
-			image,				// input image
-			dictionary,			// type of markers that will be searched for
-			markerCorners,		// output vector of marker corners
-			markerIds,			// detected marker IDs
-			detectorParams,		// algorithm parameters
-			rejectedCandidates);
-
-		if (markerIds.size() > 0) {
-			// Draw all detected markers.
-			aruco::drawDetectedMarkers(image, markerCorners, markerIds);
-			vector< Vec3d > rvecs, tvecs;
-
-			aruco::estimatePoseSingleMarkers(
-				markerCorners,	// vector of already detected markers corners
-				markerLength,	// length of the marker's side
-				K,				// input 3x3 floating-point instrinsic camera matrix K
-				distCoeffs,		// vector of distortion coefficients of 4, 5, 8 or 12 elements
-				rvecs,			// array of output rotation vectors
-				tvecs);			// array of output translation vectors
-
-								// Points of button relative to marker.
-			Point3d marker0Button = Point3d(2.5, -2.0, -1.0);
-			Point3d marker1Button = Point3d(-2.5, -2.0, -5.0);
-
-			for (unsigned int i = 0; i < markerIds.size(); i++) {
-				// Display pose for the detected marker with id=0.
-				if (markerIds[i] == 0) {
-					Vec3d r = rvecs[i];
-					Vec3d t = tvecs[i];
-
-					// Draw coordinate axes.
-					aruco::drawAxis(image,
-						K, distCoeffs, // camera parameters
-						r, t, // marker pose
-						0.5*markerLength); // length of the axes to be drawn
-										   // Draw a symbol in the upper right corner of the detected marker.
-
-										   // Draw a circle on the button relative to marker 0.
-					vector<Point3d> pointsInterest;
-					pointsInterest.push_back(marker0Button);
-					vector<Point2d> p;
-					projectPoints(pointsInterest, rvecs[i], tvecs[i], K, distCoeffs, p);
-					circle(image,
-						p[0],						// image point,
-						15,							// radius
-						Scalar(0, 255, 255),	// color
-						2);							// thickness
-				}
-
-				// Display pose for the detected marker with id=1.
-				if (markerIds[i] == 1) {
-					Vec3d r = rvecs[i];
-					Vec3d t = tvecs[i];
-
-					// Draw coordinate axes.
-					aruco::drawAxis(image,
-						K, distCoeffs,		// camera parameters
-						r, t,				// marker pose
-						0.5*markerLength);	// length of the axes to be drawn
-											// Draw a symbol in the upper right corner of the detected marker.
-
-											// Draw a circle on the button relative to marker 1.
-					vector<Point3d> pointsInterest;
-					pointsInterest.push_back(marker1Button);
-					vector<Point2d> p;
-					projectPoints(pointsInterest, rvecs[i], tvecs[i], K, distCoeffs, p);
-					circle(image,
-						p[0],						// image point,
-						15,							// radius
-						Scalar(0, 255, 255),	// color
-						2);							// thickness
-				}
-			}
-		}
-		imshow("Image", image); // show image
-									// Wait for x ms (0 means wait until a keypress).
-									// Returns -1 if no key is hit.
-
-		imshow("A", letters[0]);
-		char key = waitKey(1);
-		if (key == 27) break; // ESC is ascii 27
-	}
-	return EXIT_SUCCESS;
-	*/
 }
