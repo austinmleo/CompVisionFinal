@@ -24,7 +24,7 @@ using namespace std;
 bool useAruco = true;
 bool doImageWrite = false;
 bool waitForUser = true;
-bool useCamera = false;
+bool useCamera = true;
 bool drawMarkers = false;
 
 Mat readImage(String filename) {
@@ -184,7 +184,7 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect) {
 	threshold(gray, binaryImage, thresh, max_BINARY_value, threshold_type);
 
 
-	showImage(binaryImage, "Binary image");
+	showImageResize(binaryImage, "Binary image");
 
 	//Find contours
 	vector<vector<Point> > contours;
@@ -383,8 +383,8 @@ void transformImage(Mat image, Mat& transformedImage) {
 	erode(transformedImage, ero, element);
 	dilate(ero, ero, element);
 	transformedImage = ero;
-	imshow("Input", image);
-	imshow("Output", transformedImage);
+	showImageResize(image, "Input");
+	showImageResize(transformedImage, "Output");
 	//readScaledText(correctedImage, letters);
 }
 
@@ -554,18 +554,22 @@ int main(int argc, char* argv[])
 	vector<Mat> letters;
 	initializeTemplates(trainingImage, letters);
 
-	transformImage(inputImage, transformedImage);
-	String sayText = readScaledText(transformedImage, letters);
-	sayWithSAPI(sayText);
-
-	waitKey();
 	if (useCamera) {
 		Mat cameraImg = streamFromCamera();
 		showImage(cameraImg, "chosen frame");
 		//transformImage(cameraImg, letters);
 		transformImage(cameraImg, transformedImage);
-		readScaledText(transformedImage, letters);
+		String sayText = readScaledText(transformedImage, letters);
+		sayWithSAPI(sayText);
 	}
+	else {
+		transformImage(inputImage, transformedImage);
+		String sayText = readScaledText(transformedImage, letters);
+		sayWithSAPI(sayText);
+	}
+
+	//Don't dissappear until I confirm I saw the text output
+	waitKey();
 
 	/*
 	printf("This program detects ArUco markers.\n");
