@@ -174,18 +174,17 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect) {
 
 	Mat binaryImage;
 	Mat gray;
-	int thresh = 100;
+	int thresh = 240;
 	if (useAruco) thresh = 0;
 	int const max_BINARY_value = 255;
 	int threshold_type = THRESH_BINARY;
 
-	if (templateImage.type() != 0) {
+
 	cvtColor(templateImage, gray, CV_BGR2GRAY);
 	threshold(gray, binaryImage, thresh, max_BINARY_value, threshold_type);
 
-	}
 
-	//showImage(binaryImage, "Binary image");
+	showImage(binaryImage, "Binary image");
 
 	//Find contours
 	vector<vector<Point> > contours;
@@ -368,8 +367,8 @@ void transformImage(Mat image, Mat& transformedImage) {
 	}
 	
 	Mat lambda = Mat::zeros(image.rows, image.cols, image.type());
-	lambda = getPerspectiveTransform(detectedCorners, correspondingCorners);
-	warpPerspective(image, transformedImage, lambda, transformedImage.size());
+	lambda = findHomography(detectedCorners, correspondingCorners);
+	warpPerspective(image, transformedImage, lambda, Size(793, 1122));
 
 	Mat grayScale, bin;
 	cvtColor(transformedImage, grayScale, CV_BGR2GRAY);
@@ -382,10 +381,10 @@ void transformImage(Mat image, Mat& transformedImage) {
 
 	Mat ero;
 	erode(transformedImage, ero, element);
+	transformedImage = ero;
 	dilate(ero, ero, element);
 	imshow("Input", image);
-	imshow("Output", ero);
-	transformedImage = ero;
+	imshow("Output", transformedImage);
 	//readScaledText(correctedImage, letters);
 }
 
@@ -556,6 +555,7 @@ int main(int argc, char* argv[])
 	initializeTemplates(trainingImage, letters);
 
 	transformImage(inputImage, transformedImage);
+	showImage(transformedImage, "Tdafkljkafdjaf");
 	String sayText = readScaledText(transformedImage, letters);
 	sayWithSAPI(sayText);
 
