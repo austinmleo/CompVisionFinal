@@ -444,7 +444,7 @@ string makeSentence(vector<string> words) {
 }
 
 //TODO Austin add code here
-void readScaledText(Mat testImage, vector<Mat>& trainingLetters) {
+String readScaledText(Mat testImage, vector<Mat>& trainingLetters) {
 	int currentX = -MAXINT;
 	int currentY = -MAXINT;
 	int lastX = -MAXINT;
@@ -481,9 +481,10 @@ void readScaledText(Mat testImage, vector<Mat>& trainingLetters) {
 	words.push_back(word);
 
 	printf("\n%s\n", makeSentence(words).c_str());
+	return makeSentence(words).c_str();
 
-	if (waitForUser) 
-		waitKey(0);
+	/*if (waitForUser) 
+		waitKey(0);*/
 }
 
 Mat streamFromCamera() {
@@ -544,7 +545,7 @@ int sayWithSAPI(String sayText) {
 // MAIN
 int main(int argc, char* argv[])
 {
-	sayWithSAPI("Microsoft text to speech test.");
+	//sayWithSAPI("Microsoft text to speech test.");
 
 	Mat trainingImage = readImage("training_with_scale_ARUCO.bmp");
 	Mat inputImage = readImage("skew.bmp");
@@ -555,7 +556,8 @@ int main(int argc, char* argv[])
 	initializeTemplates(trainingImage, letters);
 
 	transformImage(inputImage, transformedImage);
-	readScaledText(transformedImage, letters);
+	String sayText = readScaledText(transformedImage, letters);
+	sayWithSAPI(sayText);
 
 	if (useCamera) {
 		Mat cameraImg = streamFromCamera();
