@@ -24,7 +24,7 @@ using namespace std;
 bool useAruco = true;
 bool doImageWrite = false;
 bool waitForUser = true;
-bool useCamera = true;
+bool useCamera = false;
 bool drawMarkers = false;
 
 Mat readImage(String filename) {
@@ -59,7 +59,7 @@ bool detectAruco(Mat image, vector<Point2f>& markerCornersSingle) {
 
 	vector< int > markerIds;
 	vector< vector<Point2f> > markerCorners, rejectedCandidates;
-	imshow("det", image);
+
 	aruco::detectMarkers(
 		image, // input image
 		dictionary, // type of markers that will be searched for
@@ -183,6 +183,8 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect) {
 
 	cvtColor(templateImage, gray, CV_BGR2GRAY);
 	threshold(gray, binaryImage, thresh, max_BINARY_value, threshold_type);
+
+	//imshow("Binary Image", binaryImage);
 
 	//Find contours
 	vector<vector<Point> > contours;
@@ -332,10 +334,7 @@ void cropLetters(Mat image, vector<Rect> boundRect, vector<Mat>& letters) {
 
 		string charStr;
 		charStr = (char)letter;
-		//showImage(croppedImage, "Cropped " + charStr);
-		//if (doImageWrite) {
-		//	imwrite(charStr + ".png", croppedImage);
-		//}
+
 		letter++;
 	}
 }
@@ -348,6 +347,7 @@ void initializeTemplates(Mat templateImage, vector<Mat>& letters) {
 }
 
 void erodeDilate(Mat& image, int erosion_size) {
+
 	Mat element = getStructuringElement(MORPH_RECT,
 		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
 		Point(erosion_size, erosion_size));
@@ -367,16 +367,13 @@ bool transformImage(Mat image, Mat& transformedImage) {
 	showImageResize(image, "detectAruco");
 	if (detectAruco(image, detectedCorners)) {
 
-		for (int i = 0; i < detectedCorners.size(); i++) {
-			printf("%f %f\n", detectedCorners[i].x, detectedCorners[i].y);
-		}
-
 		Mat lambda = Mat::zeros(image.rows, image.cols, image.type());
 		lambda = findHomography(detectedCorners, correspondingCorners);
 		warpPerspective(image, transformedImage, lambda, Size(793, 1122));
 
 		Mat grayScale, bin;
 		cvtColor(transformedImage, grayScale, CV_BGR2GRAY);
+
 
 		erodeDilate(transformedImage, erosion_size);
 		
@@ -446,7 +443,7 @@ string makeSentence(vector<string> words) {
 	return sentence;
 }
 
-//TODO Austin add code here
+
 String readScaledText(Mat testImage, vector<Mat>& trainingLetters) {
 	int currentX = -MAXINT;
 	int currentY = -MAXINT;
@@ -491,7 +488,7 @@ String readScaledText(Mat testImage, vector<Mat>& trainingLetters) {
 }
 
 Mat streamFromCamera() {
-	VideoCapture stream1("video.avi");   //0 is the id of video device.0 if you have only one camera.
+	VideoCapture stream1("outputLonely.avi");   //0 is the id of video device.0 if you have only one camera.
 
 	if (!stream1.isOpened()) { //check if video device has been initialised
 		cout << "cannot open camera";
@@ -552,32 +549,16 @@ int main(int argc, char* argv[])
 
 	Mat trainingImage = readImage("training_with_scale_ARUCO.bmp");
 	Mat inputImage = readImage("test2.bmp");
-	//showImage(inputImage, "Image to read");
+
 	Mat transformedImage;
 
 	vector<Mat> letters;
 	initializeTemplates(trainingImage, letters);
 
 	if (useCamera) {
-		//VideoCapture camera("video.avi");
-		//
-		//if (!camera.isOpened()) {
-		//	printf("Camera cannot be opened.");
-		//	return EXIT_FAILURE;
-		//}
-		//
-		//while (true) {
-		//	Mat frame;
-		//	camera >> frame;
-		//	if (transformImage(inputImage, transformedImage)) {
-		//		String sayText = readScaledText(transformedImage, letters);
-		//		sayWithSAPI(sayText);
-		//		waitKey();
-		//	}
-		//}
 		Mat cameraImg = streamFromCamera();
 		showImage(cameraImg, "chosen frame");
-		//transformImage(cameraImg, letters);
+
 		if (transformImage(cameraImg, transformedImage)) {
 			String sayText = readScaledText(transformedImage, letters);
 			sayWithSAPI(sayText);
@@ -592,5 +573,4 @@ int main(int argc, char* argv[])
 	}
 
 	//Don't dissappear until I confirm I saw the text output
-	waitKey();
 }
