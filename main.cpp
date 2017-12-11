@@ -11,6 +11,8 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
 #include <windows.h> // For Sleep()
+//#include "stdafx.h"
+#include <sapi.h>
 
 // Length of one side of a square marker.
 const float markerLength = 2.0;
@@ -509,9 +511,45 @@ Mat streamFromCamera() {
 	}
 }
 
+//https://stackoverflow.com/a/27296/8711488
+std::wstring s2ws(const std::string& s)
+{
+	int len;
+	int slength = (int)s.length() + 1;
+	len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
+	wchar_t* buf = new wchar_t[len];
+	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
+	std::wstring r(buf);
+	delete[] buf;
+	return r;
+}
+
+int sayWithSAPI(String sayText) {
+	std::wstring stemp = s2ws(sayText);
+	LPCWSTR result = stemp.c_str();
+
+	ISpVoice * pVoice = NULL;
+
+	if (FAILED(::CoInitialize(NULL)))
+		return FALSE;
+
+	HRESULT hr = CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&pVoice);
+	if (SUCCEEDED(hr))
+	{
+		hr = pVoice->Speak((LPCWSTR)result, 0, NULL);
+		pVoice->Release();
+		pVoice = NULL;
+	}
+
+	::CoUninitialize();
+	return TRUE;
+}
+
 // MAIN
 int main(int argc, char* argv[])
 {
+	sayWithSAPI("Microsoft text to speech test.");
+
 	Mat trainingImage = readImage("training_with_scale_ARUCO.bmp");
 	Mat inputImage = readImage("skew.bmp");
 	//showImage(inputImage, "Image to read");
