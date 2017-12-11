@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 	}*/
 
 	//Prepare output video
-	const cv::String fnameOut("outputPangram.avi");
+	const cv::String fnameOut("outputLonely.avi");
 	cv::VideoWriter outputVideo(fnameOut,
 		cv::VideoWriter::fourcc('D', 'I', 'V', 'X'),
 		30.0,               // fps
