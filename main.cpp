@@ -118,8 +118,8 @@ struct text_order_sorter
 		//then rounding it, then multiplying it back up,
 		//it will normalize the coordinates to fall into an even grid
 		//after that we can employ a simple method to sort by y then x
-		int m = 100;
-		int n = 100;
+		int m = 90;
+		int n = 90;
 		int xa = int(ra.tl().x / n)*n;
 		int ya = int(ra.tl().y / m)*m;
 		int xb = int(rb.tl().x / n)*n;
@@ -174,8 +174,8 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect) {
 
 	Mat binaryImage;
 	Mat gray;
-	int thresh = 240;
-	if (useAruco) thresh = 0;
+	int thresh = 0;
+	if (useAruco) thresh = 110;
 	int const max_BINARY_value = 255;
 	int threshold_type = THRESH_BINARY;
 
@@ -555,10 +555,10 @@ int main(int argc, char* argv[])
 	initializeTemplates(trainingImage, letters);
 
 	transformImage(inputImage, transformedImage);
-	showImage(transformedImage, "Tdafkljkafdjaf");
 	String sayText = readScaledText(transformedImage, letters);
 	sayWithSAPI(sayText);
 
+	waitKey();
 	if (useCamera) {
 		Mat cameraImg = streamFromCamera();
 		showImage(cameraImg, "chosen frame");
