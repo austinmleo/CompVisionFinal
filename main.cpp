@@ -24,7 +24,7 @@ using namespace std;
 bool useAruco = true;
 bool doImageWrite = false;
 bool waitForUser = true;
-bool useCamera = true;
+bool useCamera = false;
 bool drawMarkers = false;
 
 Mat readImage(String filename) {
@@ -179,8 +179,6 @@ void getBoundingRect(Mat templateImage, vector<Rect>& returnRect) {
 	int const max_BINARY_value = 255;
 	int threshold_type = THRESH_BINARY;
 
-	printf("templateImage type = %d\n", templateImage.type());
-	printf("templateImage channels = %d\n", templateImage.channels());
 	if (templateImage.type() != 0) {
 	cvtColor(templateImage, gray, CV_BGR2GRAY);
 	threshold(gray, binaryImage, thresh, max_BINARY_value, threshold_type);
@@ -361,7 +359,7 @@ void transformImage(Mat image, Mat& transformedImage) {
 	vector<Point2f> detectedCorners;
 
 	vector<Point2f> correspondingCorners = { Point2f(200.0, 20.0), Point2f(560.0, 20.0), Point2f(560.0, 380.0), Point2f(200.0, 380.0) };
-
+	showImageResize(image, "detectAruco");
 	if (detectAruco(image, detectedCorners)) {
 
 		for (int i = 0; i < detectedCorners.size(); i++) {
@@ -374,7 +372,7 @@ void transformImage(Mat image, Mat& transformedImage) {
 	warpPerspective(image, transformedImage, lambda, transformedImage.size());
 
 	Mat grayScale, bin;
-	//cvtColor(transformedImage, grayScale, CV_BGR2GRAY);
+	cvtColor(transformedImage, grayScale, CV_BGR2GRAY);
 	//threshold(grayScale, bin, 100, 255, THRESH_BINARY);
 	//cvtColor(bin, transformedImage, CV_GRAY2BGR);
 
@@ -388,8 +386,6 @@ void transformImage(Mat image, Mat& transformedImage) {
 	imshow("Input", image);
 	imshow("Output", ero);
 	transformedImage = ero;
-	printf("Image type = %d\n", ero.type());
-	printf("Image channels = %d\n", ero.channels());
 	//readScaledText(correctedImage, letters);
 }
 
@@ -558,8 +554,8 @@ int main(int argc, char* argv[])
 	vector<Mat> letters;
 	initializeTemplates(trainingImage, letters);
 
-	//transformImage(inputImage, transformedImage);
-	//readScaledText(transformedImage, letters);
+	transformImage(inputImage, transformedImage);
+	readScaledText(transformedImage, letters);
 
 	if (useCamera) {
 		Mat cameraImg = streamFromCamera();
