@@ -548,7 +548,7 @@ int main(int argc, char* argv[])
 	//sayWithSAPI("Microsoft text to speech test.");
 
 	Mat trainingImage = readImage("training_with_scale_ARUCO.bmp");
-	Mat inputImage = readImage("skew.bmp");
+	Mat inputImage = readImage("test2.bmp");
 	//showImage(inputImage, "Image to read");
 	Mat transformedImage;
 
